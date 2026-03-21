@@ -41,7 +41,7 @@ Initial Setup should be simple however it should be robust enough to set a stand
 * **Git:** For version Control — https://github.com/git/git.git
 * **Mobile:** React Native Application that connects to server
 
-## Stage 5: Phase 2 — The Nice to Haves (ERP, n8n, Kiwix) Second Iteration
+## Stage 5: Phase 2 — The Nice to Haves (ERP, n8n, Kiwix) Second Iteration (business variant)
 
 * **ERP:** Can use ERPNext, a tried and true method for managing a business — optional and charged a premium if used on our servers, however for self hosting it will be one click away
 * **Knowledge Base:** Kiwix will be used for storing the internet knowledge as we know it
