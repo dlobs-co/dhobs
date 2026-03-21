@@ -1,10 +1,10 @@
-# OpenSource HomeLabbing
+# Project S
 
-A collaborative project for open-source home lab experiments and documentation.
+A collaborative project building a unified, self-hosted digital hub platform.
 
 ## About
 
-This repository contains implementation plans, configurations, and documentation for various home lab setups and experiments.
+This repository contains the implementation plan, product definition, technical feasibility analysis, and documentation for Project S — a self-hosted operating system for the home server that integrates the best open-source tools into a single, easy-to-manage interface.
 
 ## Note
 This will be the top version with all the described features there will be a different repository for a Business version and a lite version
