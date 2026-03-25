@@ -1,0 +1,21 @@
+# Docker data
+config/
+cache/
+db/
+data/
+
+# Next.js build
+.next/
+Dashboard/Dashboard1/.next/
+
+# Dependencies
+node_modules/
+Dashboard/Dashboard1/node_modules/
+
+# Local env files
+.env*
+*.local
+
+# System files
+.DS_Store
+Thumbs.db

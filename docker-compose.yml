@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: project-s-jellyfin
+    user: 1000:1000
+    network_mode: 'host'
+    volumes:
+      - ./config/jellyfin:/config
+      - ./cache/jellyfin:/cache
+      - /home/saad/Videos/:/media
+    restart: 'unless-stopped'
+
+  dashboard:
+    build:
+      context: ./Dashboard/Dashboard1
+      dockerfile: Dockerfile
+    container_name: project-s-dashboard
+    ports:
+      - '3000:3000'
+    restart: 'unless-stopped'
+    depends_on:
+      - jellyfin
+      - nextcloud
+
+  db:
+    image: mariadb:10.6
+    container_name: project-s-nextcloud-db
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    restart: always
+    volumes:
+      - ./db/nextcloud:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=nextcloud
+      - MYSQL_PASSWORD=nextcloud
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+
+  nextcloud:
+    image: nextcloud:latest
+    container_name: project-s-nextcloud
+    restart: always
+    ports:
+      - '8080:80'
+    links:
+      - db
+    volumes:
+      - ./config/nextcloud:/var/www/html
+      - ./data/nextcloud:/var/www/html/data
+    environment:
+      - MYSQL_PASSWORD=nextcloud
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_HOST=db
+      - NEXTCLOUD_TRUSTED_DOMAINS=localhost 127.0.0.1 192.168.1.68
