@@ -19,7 +19,7 @@ services:
       dockerfile: Dockerfile
     container_name: project-s-dashboard
     ports:
-      - '3000:3000'
+      - '3069:3069'
     restart: 'unless-stopped'
     depends_on:
       - jellyfin
@@ -62,7 +62,7 @@ services:
     user: root
     privileged: true
     ports:
-      - '3030:3000'
+      - '3030:3069'
     volumes:
       - .:/home/project/project-s
       - /var/run/docker.sock:/var/run/docker.sock
@@ -91,8 +91,9 @@ services:
       - '8008:8008'
     volumes:
       - ./data/matrix/synapse:/data
+      - ./config/matrix/homeserver.yaml:/homeserver.yaml
     environment:
-      - SYNAPSE_CONFIG_PATH=/data/homeserver.yaml
+      - SYNAPSE_CONFIG_PATH=/homeserver.yaml
     restart: unless-stopped
 
   element:
@@ -101,7 +102,7 @@ services:
     ports:
       - '8082:80'
     volumes:
-      - ./matrix/element-config.json:/app/config.json
+      - ./config/matrix/element-config.json:/app/config.json
     restart: unless-stopped
 
   vaultwarden:
@@ -116,13 +117,13 @@ services:
       - DATA_FOLDER=/data
     restart: unless-stopped
 
-  kiwix:
-    build:
-      context: ./Kiwix/kiwix-js
-      dockerfile: Dockerfile
-    container_name: project-s-kiwix-reader
-    ports:
-      - '8084:80'
-    volumes:
-      - ./data/kiwix:/usr/share/nginx/html/data
-    restart: unless-stopped
+  # kiwix:
+  #   build:
+  #     context: ./Kiwix/kiwix-js
+  #     dockerfile: Dockerfile
+  #   container_name: project-s-kiwix-reader
+  #   ports:
+  #     - '8084:80'
+  #   volumes:
+  #     - ./data/kiwix:/usr/share/nginx/html/data
+  #   restart: unless-stopped

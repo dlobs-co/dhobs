@@ -9,7 +9,7 @@ echo "Starting the HomeForge Environment..."
 sudo docker run -d \
   --name homeforge-master \
   --privileged \
-  -p 3000:3000 \
+  -p 3069:3069 \
   -p 8096:8096 \
   -p 8081:8081 \
   -p 3030:3030 \

@@ -5,18 +5,12 @@ import { cn } from "@/lib/utils"
 import { useTheme, colorThemes, type ColorTheme } from "@/components/theme-provider"
 import {
   LayoutGrid,
-  Play,
-  HardDrive,
-  Cloud,
-  Code,
-  Activity,
   Settings,
   Palette,
   X,
   TerminalSquare,
-  MessageSquare,
-  Key,
-  Book,
+  Activity,
+  type LucideIcon,
 } from "lucide-react"
 import {
   Tooltip,
@@ -26,22 +20,10 @@ import {
 } from "@/components/ui/tooltip"
 
 interface NavItem {
-  icon: React.ElementType
+  icon: LucideIcon | React.ElementType
   label: string
   id: string
-  url?: string
 }
-
-const navItems: NavItem[] = [
-  { icon: LayoutGrid, label: "Home", id: "home" },
-  { icon: Play, label: "Media", id: "media" },
-  { icon: Cloud, label: "Nextcloud", id: "nextcloud", url: "http://localhost:8081" },
-  { icon: MessageSquare, label: "Matrix", id: "matrix" },
-  { icon: Key, label: "Vaultwarden", id: "vaultwarden" },
-  { icon: Book, label: "Kiwix", id: "kiwix" },
-  { icon: Code, label: "Code Space", id: "codespace", url: "http://localhost:3030" },
-  { icon: Activity, label: "Metrics", id: "metrics" },
-]
 
 interface SidebarProps {
   className?: string
@@ -49,9 +31,21 @@ interface SidebarProps {
   onNavigate?: (section: string) => void
   terminalOpen?: boolean
   onToggleTerminal?: () => void
+  recentApp?: {
+    id: string
+    label: string
+    icon: LucideIcon | React.ElementType
+  } | null
 }
 
-export function Sidebar({ className, activeSection = "dashboard", onNavigate, terminalOpen, onToggleTerminal }: SidebarProps) {
+export function Sidebar({ 
+  className, 
+  activeSection = "home", 
+  onNavigate, 
+  terminalOpen, 
+  onToggleTerminal,
+  recentApp 
+}: SidebarProps) {
   const [showSettings, setShowSettings] = useState(false)
   const [showThemes, setShowThemes] = useState(false)
   const { colorTheme, setColorTheme } = useTheme()
@@ -84,15 +78,31 @@ export function Sidebar({ className, activeSection = "dashboard", onNavigate, te
 
         {/* Main Navigation */}
         <nav className="flex flex-1 flex-col items-center gap-1 px-2 py-3">
-          {navItems.map((item) => (
+          <NavButton 
+            item={{ icon: LayoutGrid, label: "Home", id: "home" }} 
+            active={activeSection === "home" || activeSection === "dashboard"}
+            onClick={() => onNavigate?.("home")}
+            accentColor={colorTheme.accent}
+          />
+          
+          {/* Recent App Dynamic Shortcut */}
+          {recentApp && activeSection !== "home" && activeSection !== "dashboard" && (
             <NavButton 
-              key={item.id} 
-              item={item} 
-              active={activeSection === item.id}
-              onClick={() => onNavigate?.(item.id)}
+              item={{ icon: recentApp.icon, label: recentApp.label, id: recentApp.id }} 
+              active={activeSection === recentApp.id}
+              onClick={() => onNavigate?.(recentApp.id)}
               accentColor={colorTheme.accent}
             />
-          ))}
+          )}
+
+          <div className="my-1 h-px w-4 bg-white/[0.06]" />
+          
+          <NavButton 
+            item={{ icon: Activity, label: "System", id: "metrics" }} 
+            active={activeSection === "metrics"}
+            onClick={() => onNavigate?.("metrics")}
+            accentColor={colorTheme.accent}
+          />
         </nav>
 
         {/* Divider */}
@@ -231,45 +241,29 @@ function NavButton({
   accentColor: string
 }) {
   const Icon = item.icon
-  const isLink = !!item.url
-
-  const content = (
-    <div
-      className={cn(
-        "relative flex h-9 w-9 items-center justify-center rounded-xl transition-all",
-        active
-          ? "text-white shadow-lg"
-          : "text-white/50 hover:bg-white/[0.06] hover:text-white/80"
-      )}
-      style={active ? { 
-        backgroundColor: accentColor,
-        color: '#0a0a0a'
-      } : undefined}
-    >
-      <Icon className="h-[18px] w-[18px]" strokeWidth={1.5} />
-    </div>
-  )
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        {isLink ? (
-          <a
-            href={item.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block"
+        <button
+          onClick={onClick}
+          className="block"
+        >
+          <div
+            className={cn(
+              "relative flex h-9 w-9 items-center justify-center rounded-xl transition-all",
+              active
+                ? "text-white shadow-lg"
+                : "text-white/50 hover:bg-white/[0.06] hover:text-white/80"
+            )}
+            style={active ? { 
+              backgroundColor: accentColor,
+              color: '#0a0a0a'
+            } : undefined}
           >
-            {content}
-          </a>
-        ) : (
-          <button
-            onClick={onClick}
-            className="block"
-          >
-            {content}
-          </button>
-        )}
+            <Icon className="h-[18px] w-[18px]" strokeWidth={1.5} />
+          </div>
+        </button>
       </TooltipTrigger>
       <TooltipContent side="right" sideOffset={12}>
         <p>{item.label}</p>

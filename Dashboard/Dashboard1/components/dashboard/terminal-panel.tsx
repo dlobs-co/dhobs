@@ -48,14 +48,14 @@ const FILE_CONTENTS: Record<string, string> = {
   "/home/user/.bashrc": 'export PATH="$HOME/.local/bin:$PATH"\nexport EDITOR=nvim\nalias ll="ls -la"\nalias dc="docker compose"',
   "/home/user/documents/notes.txt": "Project S Development Notes\n===========================\n- Phase 1: Dashboard prototype\n- Phase 2: Docker orchestration\n- Phase 3: App store module",
   "/home/user/documents/readme.md": "# Home Lab Setup\n\nRunning Project S on Raspberry Pi 5.\nAll services behind Authelia SSO.",
-  "/home/user/projects/project-s/docker-compose.yml": "version: '3.8'\nservices:\n  dashboard:\n    image: project-s/dashboard:latest\n    ports:\n      - '5111:3000'\n    restart: unless-stopped\n  jellyfin:\n    image: jellyfin/jellyfin:latest\n    ports:\n      - '8096:8096'\n    volumes:\n      - media:/media\n  authelia:\n    image: authelia/authelia:latest\n    ports:\n      - '9091:9091'",
+  "/home/user/projects/project-s/docker-compose.yml": "version: '3.8'\nservices:\n  dashboard:\n    image: project-s/dashboard:latest\n    ports:\n      - '5111:3069'\n    restart: unless-stopped\n  jellyfin:\n    image: jellyfin/jellyfin:latest\n    ports:\n      - '8096:8096'\n    volumes:\n      - media:/media\n  authelia:\n    image: authelia/authelia:latest\n    ports:\n      - '9091:9091'",
   "/home/user/projects/project-s/README.md": "# Project S\n\nA unified, self-hosted operating system for the home server.",
   "/etc/hosts": "127.0.0.1    localhost\n192.168.1.10 dashboard.local\n192.168.1.10 jellyfin.local\n192.168.1.10 auth.local",
   "/etc/resolv.conf": "nameserver 192.168.1.1\nnameserver 1.1.1.1",
 }
 
 const DOCKER_PS = `CONTAINER ID   IMAGE                        STATUS          PORTS                    NAMES
-a1b2c3d4e5f6   project-s/dashboard:latest   Up 2 hours      0.0.0.0:5111->3000/tcp   project-s-dashboard-1
+a1b2c3d4e5f6   project-s/dashboard:latest   Up 2 hours      0.0.0.0:5111->3069/tcp   project-s-dashboard-1
 f6e5d4c3b2a1   jellyfin/jellyfin:latest      Up 2 hours      0.0.0.0:8096->8096/tcp   project-s-jellyfin-1
 1a2b3c4d5e6f   authelia/authelia:latest       Up 2 hours      0.0.0.0:9091->9091/tcp   project-s-authelia-1
 6f5e4d3c2b1a   pihole/pihole:latest          Up 5 days       0.0.0.0:53->53/tcp       pihole
@@ -204,7 +204,7 @@ function processCommand(input: string, state: ShellState): { output: string; new
         case "compose":
           if (args[1] === "up") return { output: "Starting services...\n✔ Container project-s-dashboard-1  Started\n✔ Container project-s-jellyfin-1   Started\n✔ Container project-s-authelia-1   Started", newCwd: state.cwd }
           if (args[1] === "down") return { output: "Stopping services...\n✔ Container project-s-dashboard-1  Stopped\n✔ Container project-s-jellyfin-1   Stopped\n✔ Container project-s-authelia-1   Stopped", newCwd: state.cwd }
-          if (args[1] === "logs") return { output: "project-s-dashboard-1  | ▲ Next.js 16.2.0\nproject-s-dashboard-1  | - Local: http://localhost:3000\nproject-s-dashboard-1  | ✓ Ready in 180ms\nproject-s-jellyfin-1   | [INF] Jellyfin version 10.9.0\nproject-s-authelia-1   | level=info msg=Authelia is listening on :9091", newCwd: state.cwd }
+          if (args[1] === "logs") return { output: "project-s-dashboard-1  | ▲ Next.js 16.2.0\nproject-s-dashboard-1  | - Local: http://localhost:3069\nproject-s-dashboard-1  | ✓ Ready in 180ms\nproject-s-jellyfin-1   | [INF] Jellyfin version 10.9.0\nproject-s-authelia-1   | level=info msg=Authelia is listening on :9091", newCwd: state.cwd }
           return { output: `Usage: docker compose [up|down|logs]`, newCwd: state.cwd }
         default:
           return { output: `Usage: docker [ps|images|stats|compose]`, newCwd: state.cwd }

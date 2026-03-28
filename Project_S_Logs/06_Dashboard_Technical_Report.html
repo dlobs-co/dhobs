@@ -3,998 +3,264 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Project S — Dashboard Technical Report</title>
+  <title>Project S — Dashboard Interface (Static Mirror)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
     :root {
-      --bg: #0a0a0a;
-      --surface: #111111;
-      --surface-raised: #1a1a1a;
-      --border: rgba(255,255,255,0.08);
-      --text: #f5f5f7;
-      --text-secondary: #86868b;
-      --text-muted: #48484a;
       --accent: #d4e157;
-      --accent-dim: rgba(212,225,87,0.15);
-      --success: #22c55e;
-      --warning: #facc15;
-      --danger: #ef4444;
-      --cyan: #22d3ee;
-      --purple: #a855f7;
+      --bg: #0a0a0a;
+      --glass: rgba(255, 255, 255, 0.03);
+      --glass-border: rgba(255, 255, 255, 0.08);
     }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    /* ── Cover Page ── */
-    .cover {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-      padding: 4rem 2rem;
-    }
-
-    .cover::before {
-      content: '';
-      position: absolute;
-      width: 600px;
-      height: 600px;
-      background: radial-gradient(ellipse, rgba(212,225,87,0.12), transparent 70%);
-      top: -200px;
-      left: -100px;
-      border-radius: 50%;
-      filter: blur(80px);
-      animation: glow 20s ease-in-out infinite;
-    }
-
-    .cover::after {
-      content: '';
-      position: absolute;
-      width: 500px;
-      height: 500px;
-      background: radial-gradient(ellipse, rgba(34,211,238,0.08), transparent 70%);
-      bottom: -150px;
-      right: -100px;
-      border-radius: 50%;
-      filter: blur(80px);
-      animation: glow 20s ease-in-out infinite reverse;
-    }
-
-    @keyframes glow {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      50% { transform: translate(30px, 20px) scale(1.05); }
-    }
-
-    .cover-logo {
-      width: 80px;
-      height: 80px;
-      background: var(--accent);
-      border-radius: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 36px;
-      font-weight: 700;
-      color: var(--bg);
-      margin-bottom: 2rem;
-      position: relative;
-      z-index: 1;
-    }
-
-    .cover h1 {
-      font-size: 3.5rem;
-      font-weight: 700;
-      letter-spacing: -0.03em;
-      margin-bottom: 0.5rem;
-      position: relative;
-      z-index: 1;
-    }
-
-    .cover h1 span {
-      color: var(--accent);
-    }
-
-    .cover .subtitle {
-      font-size: 1.25rem;
-      color: var(--text-secondary);
-      font-weight: 300;
-      margin-bottom: 3rem;
-      position: relative;
-      z-index: 1;
-    }
-
-    .cover-meta {
-      display: flex;
-      gap: 3rem;
-      color: var(--text-muted);
-      font-size: 0.8rem;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      position: relative;
-      z-index: 1;
-    }
-
-    .cover-meta strong {
-      color: var(--text-secondary);
-      display: block;
-      margin-bottom: 0.25rem;
-    }
-
-    /* ── Layout ── */
-    .container {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 0 2rem;
-    }
-
-    section {
-      padding: 5rem 0;
-      border-top: 1px solid var(--border);
-    }
-
-    section:first-of-type {
-      border-top: none;
-    }
-
-    /* ── Typography ── */
-    h2 {
-      font-size: 2rem;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      margin-bottom: 0.5rem;
-    }
-
-    h2 .section-num {
-      color: var(--accent);
-      font-weight: 400;
-      margin-right: 0.5rem;
-    }
-
-    h3 {
-      font-size: 1.15rem;
-      font-weight: 600;
-      margin-top: 2.5rem;
-      margin-bottom: 0.75rem;
-    }
-
-    .section-desc {
-      color: var(--text-secondary);
-      font-size: 1rem;
-      margin-bottom: 2.5rem;
-      max-width: 640px;
-    }
-
-    p {
-      color: var(--text-secondary);
-      margin-bottom: 1rem;
-      max-width: 720px;
-    }
-
-    strong {
-      color: var(--text);
-      font-weight: 500;
-    }
-
-    code {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.85em;
-      background: var(--surface-raised);
-      padding: 0.15em 0.4em;
-      border-radius: 4px;
-      color: var(--accent);
-    }
-
-    /* ── Cards ── */
-    .card-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 1.25rem;
-      margin: 1.5rem 0;
-    }
-
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 1.5rem;
-      transition: border-color 0.2s;
-    }
-
-    .card:hover {
-      border-color: rgba(255,255,255,0.15);
-    }
-
-    .card-label {
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--text-muted);
-      margin-bottom: 0.75rem;
-    }
-
-    .card-value {
-      font-size: 1.75rem;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-    }
-
-    .card-desc {
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-      margin-top: 0.5rem;
-    }
-
-    /* ── Tables ── */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 1.5rem 0;
-      font-size: 0.9rem;
-    }
-
-    thead th {
-      text-align: left;
-      padding: 0.75rem 1rem;
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text-muted);
-      border-bottom: 1px solid var(--border);
-      font-weight: 500;
-    }
-
-    tbody td {
-      padding: 0.75rem 1rem;
-      border-bottom: 1px solid var(--border);
-      color: var(--text-secondary);
-    }
-
-    tbody td:first-child {
-      color: var(--text);
-      font-weight: 500;
-    }
-
-    tbody tr:hover {
-      background: var(--surface);
-    }
-
-    /* ── Status Badges ── */
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.2rem 0.6rem;
-      border-radius: 999px;
-      font-size: 0.75rem;
-      font-weight: 500;
-    }
-
-    .badge-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-    }
-
-    .badge-success { background: rgba(34,197,94,0.12); color: var(--success); }
-    .badge-success .badge-dot { background: var(--success); }
-    .badge-warning { background: rgba(250,204,21,0.12); color: var(--warning); }
-    .badge-warning .badge-dot { background: var(--warning); }
-    .badge-danger { background: rgba(239,68,68,0.12); color: var(--danger); }
-    .badge-danger .badge-dot { background: var(--danger); }
-    .badge-info { background: rgba(34,211,238,0.12); color: var(--cyan); }
-    .badge-info .badge-dot { background: var(--cyan); }
-
-    /* ── Theme Swatches ── */
-    .theme-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 0.75rem;
-      margin: 1.5rem 0;
-    }
-
-    .theme-swatch {
-      border-radius: 12px;
-      padding: 1rem;
-      text-align: center;
-      font-size: 0.7rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      border: 1px solid var(--border);
-      transition: transform 0.2s;
-    }
-
-    .theme-swatch:hover {
-      transform: scale(1.05);
-    }
-
-    .theme-swatch .accent-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      margin: 0 auto 0.5rem;
-    }
-
-    /* ── Architecture Diagram ── */
-    .arch-box {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 2rem;
-      margin: 1.5rem 0;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.8rem;
-      line-height: 1.8;
-      color: var(--text-secondary);
-      overflow-x: auto;
-      white-space: pre;
-    }
-
-    .arch-box .highlight {
-      color: var(--accent);
-    }
-
-    .arch-box .dim {
-      color: var(--text-muted);
-    }
-
-    .arch-box .cyan {
-      color: var(--cyan);
-    }
-
-    .arch-box .purple {
-      color: var(--purple);
-    }
-
-    /* ── Timeline ── */
-    .timeline {
-      position: relative;
-      padding-left: 2rem;
-      margin: 1.5rem 0;
-    }
-
-    .timeline::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 1px;
-      background: var(--border);
-    }
-
-    .timeline-item {
-      position: relative;
-      margin-bottom: 2rem;
-      padding-bottom: 2rem;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .timeline-item:last-child {
-      border-bottom: none;
-      margin-bottom: 0;
-      padding-bottom: 0;
-    }
-
-    .timeline-item::before {
-      content: '';
-      position: absolute;
-      left: -2rem;
-      top: 0.4rem;
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      background: var(--accent);
-      transform: translateX(-4px);
-    }
-
-    .timeline-version {
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--accent);
-      margin-bottom: 0.25rem;
-      font-weight: 500;
-    }
-
-    .timeline-title {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--text);
-      margin-bottom: 0.5rem;
-    }
-
-    .timeline-desc {
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-      line-height: 1.6;
-    }
-
-    /* ── Flow Diagram ── */
-    .flow {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      margin: 1.5rem 0;
-      flex-wrap: wrap;
-    }
-
-    .flow-step {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 0.6rem 1rem;
-      font-size: 0.8rem;
-      font-weight: 500;
-      white-space: nowrap;
-    }
-
-    .flow-arrow {
-      color: var(--text-muted);
-      font-size: 1.2rem;
-    }
-
-    /* ── Stat Bars ── */
-    .stat-bar-container {
-      margin: 1rem 0;
-    }
-
-    .stat-bar-label {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.8rem;
-      margin-bottom: 0.4rem;
-    }
-
-    .stat-bar-label span:first-child { color: var(--text); font-weight: 500; }
-    .stat-bar-label span:last-child { color: var(--text-muted); }
-
-    .stat-bar {
-      height: 6px;
-      background: var(--surface-raised);
-      border-radius: 3px;
-      overflow: hidden;
-    }
-
-    .stat-bar-fill {
-      height: 100%;
-      border-radius: 3px;
-      transition: width 1s ease;
-    }
-
-    /* ── Lists ── */
-    .feature-list {
-      list-style: none;
-      margin: 1.5rem 0;
-    }
-
-    .feature-list li {
-      padding: 0.75rem 0;
-      border-bottom: 1px solid var(--border);
-      color: var(--text-secondary);
-      font-size: 0.9rem;
-      display: flex;
-      gap: 0.75rem;
-      align-items: flex-start;
-    }
-
-    .feature-list li::before {
-      content: '';
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--accent);
-      flex-shrink: 0;
-      margin-top: 0.5rem;
-    }
-
-    /* ── Footer ── */
-    footer {
-      padding: 4rem 0;
-      text-align: center;
-      border-top: 1px solid var(--border);
-      color: var(--text-muted);
-      font-size: 0.8rem;
-    }
-
-    footer .logo-small {
-      width: 40px;
-      height: 40px;
-      background: var(--accent);
-      border-radius: 10px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--bg);
-      margin-bottom: 1rem;
-    }
-
-    /* ── Print ── */
-    @media print {
-      body { background: white; color: #1a1a1a; }
-      .cover::before, .cover::after { display: none; }
-      .card { border: 1px solid #e5e5e5; }
-      section { page-break-inside: avoid; }
-    }
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg);
+      color: #f5f5f7;
+      margin: 0;
+      overflow-x: hidden;
+    }
+    .glass {
+      background: var(--glass);
+      backdrop-filter: blur(20px) saturate(120%);
+      -webkit-backdrop-filter: blur(20px) saturate(120%);
+      border: 1px solid var(--glass-border);
+    }
+    /* Aurora Background */
+    @keyframes aurora {
+      0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+      25% { transform: translate(3%, 3%) rotate(1deg) scale(1.02); }
+      50% { transform: translate(-2%, 5%) rotate(-0.5deg) scale(0.98); }
+      75% { transform: translate(5%, -3%) rotate(1.5deg) scale(1.01); }
+    }
+    .aurora-blob { animation: aurora 25s ease-in-out infinite; filter: blur(100px); mix-blend-mode: screen; }
+    
+    /* Scroll Transitions */
+    #welcome-section { transition: opacity 0.2s ease-out, transform 0.2s ease-out; }
+    #monitor-section { transition: opacity 0.3s ease-out, transform 0.3s ease-out; }
+    
+    /* Navigation */
+    .nav-btn.active { background-color: var(--accent); color: #0a0a0a; box-shadow: 0 10px 15px -3px rgba(212, 225, 87, 0.2); }
+    .nav-btn:not(.active) { color: rgba(255, 255, 255, 0.5); }
+    .nav-btn:not(.active):hover { background-color: rgba(255, 255, 255, 0.06); color: rgba(255, 255, 255, 0.8); }
+
+    .hidden { display: none; }
   </style>
 </head>
-<body>
+<body class="bg-[#0a0a0a]">
 
-  <!-- ═══════════════════════ COVER ═══════════════════════ -->
-  <div class="cover">
-    <div class="cover-logo">S</div>
-    <h1>Project <span>S</span></h1>
-    <p class="subtitle">Dashboard v4 — Technical Report &amp; Implementation Record</p>
-    <div class="cover-meta">
-      <div>
-        <strong>Date</strong>
-        March 23, 2026
-      </div>
-      <div>
-        <strong>Authors</strong>
-        Basil Suhail &amp; Saad Shafique
-      </div>
-      <div>
-        <strong>Status</strong>
-        Prototype (Mock Data)
-      </div>
-      <div>
-        <strong>Repository</strong>
-        ProjectS-HomeForge
+  <!-- ── AURORA BACKGROUND ── -->
+  <div class="fixed inset-0 overflow-hidden pointer-events-none z-0" aria-hidden="true">
+    <div class="aurora-blob absolute rounded-full opacity-30 w-[60%] h-[60%] -left-[15%] -top-[15%]" style="background: radial-gradient(ellipse, #d4e15740, transparent 70%);"></div>
+    <div class="aurora-blob absolute rounded-full opacity-20 w-[50%] h-[50%] -right-[10%] bottom-[10%]" style="background: radial-gradient(ellipse, rgba(34, 211, 238, 0.3), transparent 70%); animation-delay: -12s;"></div>
+    <div class="aurora-blob absolute rounded-full opacity-15 w-[40%] h-[40%] left-[40%] -bottom-[10%]" style="background: radial-gradient(ellipse, #d4e15730, transparent 70%); animation-delay: -6s;"></div>
+  </div>
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="fixed left-4 top-1/2 z-50 flex -translate-y-1/2 flex-col rounded-2xl border border-white/[0.08] bg-black/40 py-3 backdrop-blur-2xl shadow-2xl">
+    <div class="flex justify-center px-3 pb-3">
+      <div class="flex h-9 w-9 items-center justify-center rounded-xl font-bold text-sm bg-[#d4e157] text-black">S</div>
+    </div>
+    <div class="mx-3 h-px bg-white/[0.06]"></div>
+    <nav class="flex flex-1 flex-col items-center gap-1 px-2 py-3">
+      <button onclick="navigate('home')" id="btn-home" class="nav-btn active flex h-9 w-9 items-center justify-center rounded-xl transition-all">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+      </button>
+      <button onclick="navigate('media')" id="btn-media" class="nav-btn flex h-9 w-9 items-center justify-center rounded-xl transition-all">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      </button>
+      <button onclick="navigate('matrix')" id="btn-matrix" class="nav-btn flex h-9 w-9 items-center justify-center rounded-xl transition-all">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </button>
+      <button onclick="navigate('vaultwarden')" id="btn-vaultwarden" class="nav-btn flex h-9 w-9 items-center justify-center rounded-xl transition-all">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>
+      </button>
+      <button onclick="navigate('kiwix')" id="btn-kiwix" class="nav-btn flex h-9 w-9 items-center justify-center rounded-xl transition-all">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      </button>
+      <div class="my-1 h-px w-4 bg-white/[0.06]"></div>
+      <button onclick="window.open('http://localhost:3030')" class="nav-btn flex h-9 w-9 items-center justify-center rounded-xl transition-all">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      </button>
+    </nav>
+  </aside>
+
+  <!-- ── MAIN CONTENT ── -->
+  <main class="relative z-10">
+    
+    <!-- HOME VIEW -->
+    <div id="view-home" class="min-h-[200vh]">
+      <!-- Welcome Section -->
+      <section id="welcome-section" class="fixed inset-0 px-8 py-16 pl-24 flex flex-col justify-center pointer-events-auto">
+        <div class="max-w-6xl mx-auto w-full">
+          <header class="mb-16">
+            <p id="date-display" class="text-sm font-medium tracking-wider text-white/50 mb-2 uppercase">MARCH 28, 2026</p>
+            <h1 class="text-6xl font-bold tracking-tight text-white">Good morning!</h1>
+          </header>
+          
+          <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <!-- Dynamic Apps -->
+            <button onclick="navigate('media')" class="group flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-white/[0.04] bg-white/[0.02] border border-white/[0.05]">
+              <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-[#d4e157]/10 text-[#d4e157]">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              </div>
+              <div class="text-left leading-tight"><p class="text-sm font-semibold">Jellyfin</p><p class="text-[10px] text-white/40 uppercase">Integrated</p></div>
+            </button>
+            <button onclick="navigate('matrix')" class="group flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-white/[0.04] bg-white/[0.02] border border-white/[0.05]">
+              <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-[#d4e157]/10 text-[#d4e157]">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <div class="text-left leading-tight"><p class="text-sm font-semibold">Matrix</p><p class="text-[10px] text-white/40 uppercase">Integrated</p></div>
+            </button>
+            <button onclick="navigate('vaultwarden')" class="group flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-white/[0.04] bg-white/[0.02] border border-white/[0.05]">
+              <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-[#d4e157]/10 text-[#d4e157]">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>
+              </div>
+              <div class="text-left leading-tight"><p class="text-sm font-semibold">Vaultwarden</p><p class="text-[10px] text-white/40 uppercase">Integrated</p></div>
+            </button>
+            <button onclick="navigate('kiwix')" class="group flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-white/[0.04] bg-white/[0.02] border border-white/[0.05]">
+              <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-[#d4e157]/10 text-[#d4e157]">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              </div>
+              <div class="text-left leading-tight"><p class="text-sm font-semibold">Kiwix</p><p class="text-[10px] text-white/40 uppercase">Integrated</p></div>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Monitor Section -->
+      <section id="monitor-section" class="relative pt-[100vh] pb-32 px-8 pl-24 opacity-0 pointer-events-none transform translate-y-20">
+        <div class="max-w-6xl mx-auto w-full">
+          <h2 class="text-3xl font-bold mb-8">System Monitor</h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- CPU Card -->
+            <div class="p-6 rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-xl">
+              <div class="flex items-center gap-2 mb-6">
+                <svg class="w-4 h-4 text-[#d4e157]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>
+                <span class="text-sm font-semibold">CPU Usage</span>
+              </div>
+              <div class="relative flex items-center justify-center h-40">
+                <svg class="w-32 h-32 transform -rotate-90">
+                  <circle cx="64" cy="64" r="58" stroke="rgba(255,255,255,0.1)" stroke-width="8" fill="transparent" />
+                  <circle cx="64" cy="64" r="58" stroke="#d4e157" stroke-width="8" fill="transparent" stroke-dasharray="364" stroke-dashoffset="182" />
+                </svg>
+                <div class="absolute inset-0 flex items-center justify-center text-3xl font-bold">52%</div>
+              </div>
+            </div>
+            <!-- Memory Card -->
+            <div class="p-6 rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-xl">
+              <div class="flex items-center gap-2 mb-6">
+                <svg class="w-4 h-4 text-cyan-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 19v-3"/><path d="M10 19v-7"/><path d="M14 19v-5"/><path d="M18 19v-8"/><path d="M2 19h20"/></svg>
+                <span class="text-sm font-semibold">Memory</span>
+              </div>
+              <div class="text-4xl font-bold text-cyan-400 mb-2">1.8 GiB</div>
+              <p class="text-xs text-white/40 uppercase">Available of 16 GiB</p>
+            </div>
+            <!-- Storage Card -->
+            <div class="p-6 rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-xl">
+              <div class="flex items-center gap-2 mb-6">
+                <svg class="w-4 h-4 text-purple-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h20a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+                <span class="text-sm font-semibold">Disk Space</span>
+              </div>
+              <div class="space-y-4">
+                <div>
+                  <div class="flex justify-between text-xs mb-1"><span>/dev/root</span><span class="text-white/40">5%</span></div>
+                  <div class="h-1.5 rounded-full bg-white/10 overflow-hidden"><div class="h-full bg-green-500" style="width: 5%"></div></div>
+                </div>
+                <div>
+                  <div class="flex justify-between text-xs mb-1"><span>/user/home</span><span class="text-white/40">50%</span></div>
+                  <div class="h-1.5 rounded-full bg-white/10 overflow-hidden"><div class="h-full bg-yellow-500" style="width: 50%"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- PORTAL VIEW -->
+    <div id="view-portal" class="hidden fixed inset-0 pl-20 pt-4 pb-4 pr-4 flex flex-col pointer-events-auto">
+      <div class="flex-1 w-full rounded-2xl border border-white/[0.06] bg-black/40 backdrop-blur-xl overflow-hidden relative">
+        <div id="portal-loader" class="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/60 z-20 transition-opacity">
+          <svg class="w-8 h-8 animate-spin text-white/20" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+          <p class="text-xs text-white/40 uppercase tracking-widest" id="portal-text">Connecting to service...</p>
+        </div>
+        <iframe id="portal-iframe" src="" class="w-full h-full border-0" allowfullscreen></iframe>
       </div>
     </div>
-  </div>
 
-  <div class="container">
+  </main>
 
-    <!-- ═══════════════════════ 1. EXECUTIVE SUMMARY ═══════════════════════ -->
-    <section>
-      <h2><span class="section-num">01</span>Executive Summary</h2>
-      <p class="section-desc">A concise overview of what was built, why, and where it stands.</p>
+  <script>
+    const ports = {
+      media: "http://localhost:8096",
+      matrix: "http://localhost:8082",
+      vaultwarden: "http://localhost:8083",
+      kiwix: "http://localhost:8084"
+    };
 
-      <p>
-        Project S is a unified, self-hosted operating system for home servers. The dashboard is its primary interface — a single-page application where users manage all integrated services, monitor system health, and access their self-hosted applications.
-      </p>
-      <p>
-        Over four rapid iterations on March 23, 2026, the dashboard evolved from a basic card layout to a polished, Apple-inspired glassmorphism interface with scroll-driven animations, 11 switchable color themes, a Recharts-powered monitoring suite, and a Heimdall-style application launcher.
-      </p>
+    function navigate(section) {
+      const home = document.getElementById('view-home');
+      const portal = document.getElementById('view-portal');
+      const iframe = document.getElementById('portal-iframe');
+      const loader = document.getElementById('portal-loader');
+      const portalText = document.getElementById('portal-text');
 
-      <div class="card-grid">
-        <div class="card">
-          <div class="card-label">Framework</div>
-          <div class="card-value">Next.js 16</div>
-          <div class="card-desc">React 19, Turbopack, Server Components</div>
-        </div>
-        <div class="card">
-          <div class="card-label">Components</div>
-          <div class="card-value">60+</div>
-          <div class="card-desc">shadcn/ui primitives (Radix-based)</div>
-        </div>
-        <div class="card">
-          <div class="card-label">Themes</div>
-          <div class="card-value">11</div>
-          <div class="card-desc">8 dark + 3 light, localStorage persistent</div>
-        </div>
-        <div class="card">
-          <div class="card-label">Dependencies</div>
-          <div class="card-value">195</div>
-          <div class="card-desc">0 vulnerabilities (npm audit clean)</div>
-        </div>
-      </div>
-    </section>
+      // Update Active State
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      const activeBtn = document.getElementById('btn-' + section);
+      if (activeBtn) activeBtn.classList.add('active');
 
-    <!-- ═══════════════════════ 2. TECH STACK ═══════════════════════ -->
-    <section>
-      <h2><span class="section-num">02</span>Technology Stack</h2>
-      <p class="section-desc">Every dependency, its version, and why it was chosen.</p>
+      if (section === 'home') {
+        home.classList.remove('hidden');
+        portal.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        home.classList.add('hidden');
+        portal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        
+        loader.style.opacity = '1';
+        portalText.innerText = `Connecting to ${section}...`;
+        iframe.src = ports[section] || "";
+        
+        // Hide loader after a bit (since local iframes load fast)
+        setTimeout(() => { loader.style.opacity = '0'; }, 800);
+      }
+    }
 
-      <table>
-        <thead>
-          <tr><th>Layer</th><th>Technology</th><th>Version</th><th>License</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>Framework</td><td>Next.js</td><td>16.2.0</td><td>MIT</td></tr>
-          <tr><td>Runtime</td><td>React + React DOM</td><td>19.2.4</td><td>MIT</td></tr>
-          <tr><td>Language</td><td>TypeScript</td><td>5.7.3</td><td>Apache-2.0</td></tr>
-          <tr><td>Styling</td><td>Tailwind CSS</td><td>4.2.0</td><td>MIT</td></tr>
-          <tr><td>UI Primitives</td><td>Radix UI</td><td>30+ packages</td><td>MIT</td></tr>
-          <tr><td>Component Kit</td><td>shadcn/ui (New York)</td><td>latest</td><td>MIT</td></tr>
-          <tr><td>Charts</td><td>Recharts</td><td>2.15.0</td><td>MIT</td></tr>
-          <tr><td>Icons</td><td>Lucide React</td><td>0.564.0</td><td>ISC</td></tr>
-          <tr><td>Fonts</td><td>Inter + JetBrains Mono</td><td>Google Fonts</td><td>OFL</td></tr>
-          <tr><td>Forms</td><td>React Hook Form + Zod</td><td>7.54 / 3.24</td><td>MIT</td></tr>
-          <tr><td>Notifications</td><td>Sonner</td><td>1.7.1</td><td>MIT</td></tr>
-          <tr><td>Class Utils</td><td>clsx + tailwind-merge + CVA</td><td>latest</td><td>MIT</td></tr>
-        </tbody>
-      </table>
+    // Date
+    document.getElementById('date-display').innerText = new Date().toLocaleDateString('en-US', {
+      weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+    }).toUpperCase();
 
-      <h3>Key Architecture Decisions</h3>
-      <ul class="feature-list">
-        <li><strong>Tailwind CSS 4</strong> — no config file needed. All theming through CSS custom properties on <code>:root</code>.</li>
-        <li><strong>shadcn/ui</strong> — components are copied into the project, not imported from a package. Full ownership, no version lock-in.</li>
-        <li><strong>Recharts over Chart.js</strong> — declarative React components, composable chart types, built-in responsive containers, gradient fill support.</li>
-        <li><strong>No state library</strong> — React Context is sufficient for theme state. System metrics will use WebSocket subscriptions (future).</li>
-        <li><strong>Single-page scroll model</strong> — no router needed for the prototype. Welcome section and dashboard section share one page with scroll-driven transitions.</li>
-      </ul>
-    </section>
+    // Scroll Animations
+    window.addEventListener('scroll', () => {
+      const scrollY = window.scrollY;
+      const height = window.innerHeight;
+      const progress = Math.min(scrollY / height, 1);
 
-    <!-- ═══════════════════════ 3. ARCHITECTURE ═══════════════════════ -->
-    <section>
-      <h2><span class="section-num">03</span>Component Architecture</h2>
-      <p class="section-desc">How the dashboard is structured, from root layout to leaf components.</p>
+      const welcome = document.getElementById('welcome-section');
+      const monitor = document.getElementById('monitor-section');
 
-      <div class="arch-box"><span class="highlight">RootLayout</span> <span class="dim">(app/layout.tsx — Server Component)</span>
-<span class="dim">├──</span> Inline &lt;script&gt; — Injects <span class="cyan">"dark"</span> class before hydration
-<span class="dim">├──</span> Google Fonts — <span class="cyan">Inter</span> (--font-sans) + <span class="cyan">JetBrains Mono</span> (--font-mono)
-<span class="dim">├──</span> <span class="highlight">ThemeProvider</span> <span class="dim">(context, 11 themes, localStorage)</span>
-<span class="dim">│   └──</span> <span class="highlight">HomePage</span> <span class="dim">(app/page.tsx — Client Component)</span>
-<span class="dim">│       ├──</span> <span class="purple">Aurora Background</span> <span class="dim">— 3 animated gradient blobs, fixed</span>
-<span class="dim">│       ├──</span> <span class="highlight">Sidebar</span> <span class="dim">— Glass pill, icon nav, settings popup</span>
-<span class="dim">│       │   ├──</span> Logo Mark <span class="dim">("S")</span>
-<span class="dim">│       │   ├──</span> NavButton <span class="dim">× 4</span>
-<span class="dim">│       │   └──</span> ThemeButton <span class="dim">× 11 (in 4-col popup grid)</span>
-<span class="dim">│       ├──</span> <span class="cyan">WelcomeSection</span> <span class="dim">— Fades OUT on scroll</span>
-<span class="dim">│       │   ├──</span> Date + Greeting
-<span class="dim">│       │   ├──</span> Applications Grid <span class="dim">(16 services)</span>
-<span class="dim">│       │   └──</span> Bookmarks Grid <span class="dim">(6 categories × 3 links)</span>
-<span class="dim">│       └──</span> <span class="cyan">DashboardSection</span> <span class="dim">— Fades IN after 30% scroll</span>
-<span class="dim">│           ├──</span> Quick Stats Bar
-<span class="dim">│           ├──</span> CPU Gauge <span class="dim">(PieChart donut)</span>
-<span class="dim">│           ├──</span> CPU History <span class="dim">(AreaChart, 24h)</span>
-<span class="dim">│           ├──</span> Memory Gauge <span class="dim">(PieChart donut)</span>
-<span class="dim">│           ├──</span> Network Activity <span class="dim">(AreaChart, up/down)</span>
-<span class="dim">│           ├──</span> System Load <span class="dim">(BarChart, 1/5/15 min)</span>
-<span class="dim">│           ├──</span> Disk Space <span class="dim">(progress bars)</span>
-<span class="dim">│           ├──</span> System Alerts <span class="dim">(warning list)</span>
-<span class="dim">│           └──</span> Services Grid <span class="dim">(6 cards with status)</span></div>
+      if (welcome) {
+        welcome.style.opacity = (1 - progress * 1.5).toString();
+        welcome.style.transform = `translateY(-${progress * 50}px)`;
+        welcome.style.pointerEvents = progress > 0.5 ? 'none' : 'auto';
+      }
 
-      <h3>Data Flow</h3>
-      <div class="flow">
-        <div class="flow-step">localStorage</div>
-        <div class="flow-arrow">&rarr;</div>
-        <div class="flow-step">ThemeProvider</div>
-        <div class="flow-arrow">&rarr;</div>
-        <div class="flow-step">CSS Variables on :root</div>
-        <div class="flow-arrow">&rarr;</div>
-        <div class="flow-step">All Components</div>
-      </div>
-      <div class="flow">
-        <div class="flow-step">window.scrollY</div>
-        <div class="flow-arrow">&rarr;</div>
-        <div class="flow-step">scrollProgress (0..1)</div>
-        <div class="flow-arrow">&rarr;</div>
-        <div class="flow-step">Inline opacity + transform</div>
-        <div class="flow-arrow">&rarr;</div>
-        <div class="flow-step">Section Transition</div>
-      </div>
-    </section>
-
-    <!-- ═══════════════════════ 4. THEME SYSTEM ═══════════════════════ -->
-    <section>
-      <h2><span class="section-num">04</span>Theme System</h2>
-      <p class="section-desc">11 color themes — 8 dark, 3 light — switchable in real time with no page reload.</p>
-
-      <div class="theme-grid">
-        <div class="theme-swatch" style="background:#0a0a0a;color:#f5f5f7;">
-          <div class="accent-dot" style="background:#d4e157;"></div>Blackboard
-        </div>
-        <div class="theme-swatch" style="background:#3d4654;color:#f5f5f7;">
-          <div class="accent-dot" style="background:#8bb8a8;"></div>Gazette
-        </div>
-        <div class="theme-swatch" style="background:#2c2724;color:#f5f5f7;">
-          <div class="accent-dot" style="background:#d4a574;"></div>Espresso
-        </div>
-        <div class="theme-swatch" style="background:#1a1a1a;color:#f5f5f7;">
-          <div class="accent-dot" style="background:#facc15;"></div>Cab
-        </div>
-        <div class="theme-swatch" style="background:#f5f5f7;color:#1d1d1f;border-color:#e5e5e5;">
-          <div class="accent-dot" style="background:#ef4444;"></div>Cloud
-        </div>
-        <div class="theme-swatch" style="background:#1a2e1a;color:#84cc16;">
-          <div class="accent-dot" style="background:#84cc16;"></div>Lime
-        </div>
-        <div class="theme-swatch" style="background:#2d1f3d;color:#f5f5f7;">
-          <div class="accent-dot" style="background:#a855f7;"></div>Passion
-        </div>
-        <div class="theme-swatch" style="background:#1e1b4b;color:#f5f5f7;">
-          <div class="accent-dot" style="background:#6366f1;"></div>Blues
-        </div>
-        <div class="theme-swatch" style="background:#fdf2f8;color:#1d1d1f;border-color:#fbcfe8;">
-          <div class="accent-dot" style="background:#ec4899;"></div>Chalk
-        </div>
-        <div class="theme-swatch" style="background:#0c1821;color:#22d3ee;">
-          <div class="accent-dot" style="background:#22d3ee;"></div>Tron
-        </div>
-        <div class="theme-swatch" style="background:#fefce8;color:#1d1d1f;border-color:#fde68a;">
-          <div class="accent-dot" style="background:#ca8a04;"></div>Paper
-        </div>
-      </div>
-
-      <h3>Theme Switching Flow</h3>
-      <div class="flow">
-        <div class="flow-step">User clicks Settings</div>
-        <div class="flow-arrow">&rarr;</div>
-        <div class="flow-step">Clicks "Color themes"</div>
-        <div class="flow-arrow">&rarr;</div>
-        <div class="flow-step">Selects theme swatch</div>
-        <div class="flow-arrow">&rarr;</div>
-        <div class="flow-step">setColorTheme()</div>
-      </div>
-      <div class="flow">
-        <div class="flow-step">Update React state</div>
-        <div class="flow-arrow">&rarr;</div>
-        <div class="flow-step">Apply 10 CSS vars</div>
-        <div class="flow-arrow">&rarr;</div>
-        <div class="flow-step">Save to localStorage</div>
-        <div class="flow-arrow">&rarr;</div>
-        <div class="flow-step">Toggle dark/light class</div>
-      </div>
-
-      <h3>CSS Variables Applied Per Theme</h3>
-      <table>
-        <thead>
-          <tr><th>Variable</th><th>Maps To</th></tr>
-        </thead>
-        <tbody>
-          <tr><td><code>--background</code></td><td>Page background</td></tr>
-          <tr><td><code>--foreground</code></td><td>Primary text</td></tr>
-          <tr><td><code>--primary</code></td><td>Accent / interactive color</td></tr>
-          <tr><td><code>--primary-foreground</code></td><td>Text on accent</td></tr>
-          <tr><td><code>--card</code></td><td>Card background (rgba for glass)</td></tr>
-          <tr><td><code>--muted-foreground</code></td><td>Secondary text</td></tr>
-          <tr><td><code>--border</code></td><td>Borders and dividers</td></tr>
-          <tr><td><code>--glass-border</code></td><td>Glass panel borders</td></tr>
-          <tr><td><code>--glow-primary</code></td><td>Aurora glow tint</td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <!-- ═══════════════════════ 5. GLASSMORPHISM ═══════════════════════ -->
-    <section>
-      <h2><span class="section-num">05</span>Glass Morphism &amp; Visual Effects</h2>
-      <p class="section-desc">The signature visual layer — frosted glass, aurora glows, and scroll-linked motion.</p>
-
-      <h3>Glass Effect Implementation</h3>
-      <table>
-        <thead>
-          <tr><th>Element</th><th>Blur</th><th>Background</th><th>Border</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>Sidebar</td><td><code>backdrop-blur-2xl</code></td><td><code>bg-black/40</code></td><td><code>border-white/[0.08]</code></td></tr>
-          <tr><td>Settings popup</td><td><code>backdrop-blur-2xl</code></td><td><code>bg-black/60</code></td><td><code>border-white/[0.08]</code></td></tr>
-          <tr><td>Theme selector</td><td><code>backdrop-blur-2xl</code></td><td><code>bg-black/70</code></td><td><code>border-white/[0.08]</code></td></tr>
-          <tr><td>Dashboard cards</td><td><code>backdrop-blur-xl</code></td><td><code>bg-white/[0.03]</code></td><td><code>border-white/[0.06]</code></td></tr>
-        </tbody>
-      </table>
-
-      <h3>Aurora Background</h3>
-      <p>Three gradient blobs animate behind all content on a 25-second infinite loop:</p>
-      <table>
-        <thead>
-          <tr><th>Blob</th><th>Size</th><th>Color</th><th>Position</th><th>Blur</th><th>Delay</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>Primary</td><td>60%</td><td>Accent @ 40%</td><td>Top-left</td><td>120px</td><td>0s</td></tr>
-          <tr><td>Secondary</td><td>50%</td><td>Cyan @ 30%</td><td>Bottom-right</td><td>120px</td><td>-12s</td></tr>
-          <tr><td>Tertiary</td><td>40%</td><td>Accent @ 30%</td><td>Bottom-center</td><td>100px</td><td>-6s</td></tr>
-        </tbody>
-      </table>
-
-      <h3>Scroll-Driven Transition</h3>
-      <p>The page uses a two-section scroll model. Total page height is <code>200vh</code>. Scroll progress is calculated as <code>scrollY / innerHeight</code>, clamped to 0–1.</p>
-      <table>
-        <thead>
-          <tr><th>Section</th><th>Opacity Formula</th><th>Transform</th><th>Trigger</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>Welcome</td><td><code>1 - progress × 1.5</code></td><td><code>translateY(-progress × 50px)</code></td><td>Immediate</td></tr>
-          <tr><td>Dashboard</td><td><code>(progress - 0.3) / 0.7</code></td><td><code>translateY((1 - progress) × 30px)</code></td><td>After 30% scroll</td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <!-- ═══════════════════════ 6. DASHBOARD METRICS ═══════════════════════ -->
-    <section>
-      <h2><span class="section-num">06</span>Dashboard Monitoring Suite</h2>
-      <p class="section-desc">System metrics visualized with Recharts — currently using mock data, ready for WebSocket integration.</p>
-
-      <h3>Chart Widgets</h3>
-      <table>
-        <thead>
-          <tr><th>Widget</th><th>Chart Type</th><th>Data Points</th><th>Color</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>CPU Usage</td><td>PieChart (donut gauge)</td><td>Single %</td><td>Theme accent</td></tr>
-          <tr><td>CPU History</td><td>AreaChart + gradient</td><td>7 (24h)</td><td>Theme accent</td></tr>
-          <tr><td>Memory Usage</td><td>PieChart (donut gauge)</td><td>Single %</td><td>Cyan #22d3ee</td></tr>
-          <tr><td>Network Activity</td><td>Dual AreaChart</td><td>7 (time series)</td><td>Purple/Cyan</td></tr>
-          <tr><td>System Load</td><td>BarChart</td><td>3 (1/5/15 min)</td><td>Theme accent</td></tr>
-          <tr><td>Disk Space</td><td>CSS progress bars</td><td>2 mounts</td><td>Green/Yellow</td></tr>
-          <tr><td>Alerts</td><td>List</td><td>2 warnings</td><td>Warning semantic</td></tr>
-        </tbody>
-      </table>
-
-      <h3>Resource Usage (Mock Data)</h3>
-      <div class="stat-bar-container">
-        <div class="stat-bar-label"><span>CPU</span><span>4%</span></div>
-        <div class="stat-bar"><div class="stat-bar-fill" style="width:4%;background:var(--accent);"></div></div>
-      </div>
-      <div class="stat-bar-container">
-        <div class="stat-bar-label"><span>Memory</span><span>12.7%</span></div>
-        <div class="stat-bar"><div class="stat-bar-fill" style="width:12.7%;background:var(--cyan);"></div></div>
-      </div>
-      <div class="stat-bar-container">
-        <div class="stat-bar-label"><span>/dev/root</span><span>5%</span></div>
-        <div class="stat-bar"><div class="stat-bar-fill" style="width:5%;background:var(--success);"></div></div>
-      </div>
-      <div class="stat-bar-container">
-        <div class="stat-bar-label"><span>/user/home</span><span>50%</span></div>
-        <div class="stat-bar"><div class="stat-bar-fill" style="width:50%;background:var(--warning);"></div></div>
-      </div>
-
-      <h3>Monitored Services</h3>
-      <table>
-        <thead>
-          <tr><th>Service</th><th>Description</th><th>Status</th><th>Ping</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>pfSense</td><td>Firewall & Router</td><td><span class="badge badge-success"><span class="badge-dot"></span>Online</span></td><td>1ms</td></tr>
-          <tr><td>Pi-hole</td><td>DNS Ad Blocker</td><td><span class="badge badge-success"><span class="badge-dot"></span>Online</span></td><td>2ms</td></tr>
-          <tr><td>TrueNAS</td><td>Network Storage</td><td><span class="badge badge-success"><span class="badge-dot"></span>Online</span></td><td>3ms</td></tr>
-          <tr><td>Plex</td><td>Media Server</td><td><span class="badge badge-warning"><span class="badge-dot"></span>Degraded</span></td><td>45ms</td></tr>
-          <tr><td>Portainer</td><td>Container Management</td><td><span class="badge badge-success"><span class="badge-dot"></span>Online</span></td><td>5ms</td></tr>
-          <tr><td>Uptime Kuma</td><td>Status Monitoring</td><td><span class="badge badge-success"><span class="badge-dot"></span>Online</span></td><td>1ms</td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <!-- ═══════════════════════ 7. WELCOME SECTION ═══════════════════════ -->
-    <section>
-      <h2><span class="section-num">07</span>Welcome &amp; Application Launcher</h2>
-      <p class="section-desc">The landing view — greeting, quick-access applications, and categorized bookmarks.</p>
-
-      <h3>Applications (16 Services)</h3>
-      <table>
-        <thead>
-          <tr><th>#</th><th>Name</th><th>URL</th><th>Icon</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>1</td><td>Jellyfin</td><td>jellyfin.local</td><td>MonitorPlay</td></tr>
-          <tr><td>2</td><td>Nextcloud</td><td>cloud.local</td><td>Cloud</td></tr>
-          <tr><td>3</td><td>Code Server</td><td>http://192.168.1.68:3030</td><td>Code2</td></tr>
-          <tr><td>4</td><td>Matrix</td><td>chat.local</td><td>MessageSquare</td></tr>
-          <tr><td>5</td><td>Vaultwarden</td><td>vault.local</td><td>KeyRound</td></tr>
-          <tr><td>6</td><td>Home Assistant</td><td>home.local</td><td>Home</td></tr>
-          <tr><td>7</td><td>PostgreSQL</td><td>db.local</td><td>Database</td></tr>
-          <tr><td>8</td><td>Authelia</td><td>auth.local</td><td>Shield</td></tr>
-          <tr><td>9</td><td>Plex</td><td>plex.local</td><td>Tv</td></tr>
-          <tr><td>10</td><td>Navidrome</td><td>music.local</td><td>Music</td></tr>
-          <tr><td>11</td><td>Portainer</td><td>docker.local</td><td>Container</td></tr>
-          <tr><td>12</td><td>Pi-hole</td><td>pihole.local</td><td>ShieldCheck</td></tr>
-          <tr><td>13</td><td>Grafana</td><td>grafana.local</td><td>BarChart3</td></tr>
-          <tr><td>14</td><td>Filebrowser</td><td>files.local</td><td>FolderOpen</td></tr>
-          <tr><td>15</td><td>Miniflux</td><td>rss.local</td><td>Rss</td></tr>
-          <tr><td>16</td><td>Syncthing</td><td>sync.local</td><td>RefreshCw</td></tr>
-        </tbody>
-      </table>
-
-      <h3>Bookmark Categories</h3>
-      <div class="card-grid">
-        <div class="card">
-          <div class="card-label">Communicate</div>
-          <div class="card-desc">Discord &bull; Slack &bull; Gmail</div>
-        </div>
-        <div class="card">
-          <div class="card-label">Cloud</div>
-          <div class="card-desc">Drive &bull; Dropbox &bull; iCloud</div>
-        </div>
-        <div class="card">
-          <div class="card-label">Design</div>
-          <div class="card-desc">Figma &bull; Dribbble &bull; Behance</div>
-        </div>
-        <div class="card">
-          <div class="card-label">Dev</div>
-          <div class="card-desc">GitHub &bull; Stack Overflow &bull; MDN</div>
-        </div>
-        <div class="card">
-          <div class="card-label">Media</div>
-          <div class="card-desc">YouTube &bull; Spotify &bull; Netflix</div>
-        </div>
-        <div class="card">
-          <div class="card-label">Tech</div>
-          <div class="card-desc">Hacker News &bull; Ars Technica &bull; The Verge</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══════════════════════ 8. ITERATION HISTORY ═══════════════════════ -->
-    <section>
-      <h2><span class="section-num">08</span>Iteration History</h2>
-      <p class="section-desc">Four versions in one day — from scaffolding to polished prototype.</p>
-
-      <div class="timeline">
-        <div class="timeline-item">
-          <div class="timeline-version">v1 — March 23, 2026</div>
-          <div class="timeline-title">Initial Scaffolding</div>
-          <div class="timeline-desc">
-            Basic Next.js setup with module cards in a grid layout. Simple dark background. Straightforward component structure with a top navigation bar and card-based service display.
-          </div>
-        </div>
-        <div class="timeline-item">
-          <div class="timeline-version">v2 — March 23, 2026</div>
-          <div class="timeline-title">Client Component Fixes</div>
-          <div class="timeline-desc">
-            Fixed React Server Component / Client Component boundary issues. Refactored icon passing from pre-rendered JSX to component references (<code>LucideIcon</code> type). Added <code>"use client"</code> directive to page component.
-          </div>
-        </div>
-        <div class="timeline-item">
-          <div class="timeline-version">v3 — March 23, 2026</div>
-          <div class="timeline-title">Apple-Inspired Redesign</div>
-          <div class="timeline-desc">
-            Complete visual overhaul. Introduced glassmorphism aesthetic, aurora background with 3 animated gradient blobs, floating icon-only sidebar, 11 color themes with live switching, and proper dark/light mode toggle. Inspired by Apple.com, Obelisk dashboard, and attached reference screenshots.
-          </div>
-        </div>
-        <div class="timeline-item">
-          <div class="timeline-version">v4 — March 23, 2026 (Current)</div>
-          <div class="timeline-title">Full Dashboard + Welcome Page</div>
-          <div class="timeline-desc">
-            Added scroll-driven two-section layout: Welcome section with 16 application shortcuts and 6 bookmark categories (Heimdall-inspired), fading into a full Recharts monitoring dashboard with CPU/memory gauges, network area charts, system load bars, disk space indicators, alerts, and service status grid. Fixed hydration issues with mounted state pattern. Theme selector popup matches reference design.
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══════════════════════ 9. WHAT'S NEXT ═══════════════════════ -->
-    <section>
-      <h2><span class="section-num">09</span>What Comes Next</h2>
-      <p class="section-desc">The prototype is visual-only. Here is what is needed to make it functional.</p>
-
-      <table>
-        <thead>
-          <tr><th>Priority</th><th>Task</th><th>Status</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>Critical</td><td>WebSocket endpoint for live system metrics (replace mock data)</td><td><span class="badge badge-danger"><span class="badge-dot"></span>Not Started</span></td></tr>
-          <tr><td>Critical</td><td>Authentication flow (master credentials from Phase 2 spec)</td><td><span class="badge badge-danger"><span class="badge-dot"></span>Not Started</span></td></tr>
-          <tr><td>Critical</td><td>Docker API integration for real container/service status</td><td><span class="badge badge-danger"><span class="badge-dot"></span>Not Started</span></td></tr>
-          <tr><td>High</td><td>Page routing for sidebar navigation (Media, Storage, Metrics views)</td><td><span class="badge badge-danger"><span class="badge-dot"></span>Not Started</span></td></tr>
-          <tr><td>High</td><td>App Store module installer UI</td><td><span class="badge badge-danger"><span class="badge-dot"></span>Not Started</span></td></tr>
-          <tr><td>High</td><td>Notification system (toasts + persistent alert center)</td><td><span class="badge badge-danger"><span class="badge-dot"></span>Not Started</span></td></tr>
-          <tr><td>Medium</td><td>Drag-and-drop card reordering on home screen</td><td><span class="badge badge-danger"><span class="badge-dot"></span>Not Started</span></td></tr>
-          <tr><td>Medium</td><td>Mobile responsive testing + React Native companion app</td><td><span class="badge badge-danger"><span class="badge-dot"></span>Not Started</span></td></tr>
-          <tr><td>Medium</td><td>User-configurable application URLs (replace hardcoded .local)</td><td><span class="badge badge-danger"><span class="badge-dot"></span>Not Started</span></td></tr>
-          <tr><td>Low</td><td>Keyboard shortcuts (Cmd+K search, Escape to close)</td><td><span class="badge badge-danger"><span class="badge-dot"></span>Not Started</span></td></tr>
-        </tbody>
-      </table>
-    </section>
-
-  </div>
-
-  <!-- ═══════════════════════ FOOTER ═══════════════════════ -->
-  <footer>
-    <div class="logo-small">S</div>
-    <p>Project S — Dashboard Technical Report</p>
-    <p style="margin-top:0.5rem;">Generated March 23, 2026 &bull; Confidential until public release</p>
-  </footer>
-
+      if (monitor) {
+        if (progress > 0.3) {
+          monitor.style.opacity = ((progress - 0.3) / 0.7).toString();
+          monitor.style.transform = `translateY(${(1 - progress) * 30}px)`;
+          monitor.style.pointerEvents = 'auto';
+        } else {
+          monitor.style.opacity = '0';
+          monitor.style.pointerEvents = 'none';
+        }
+      }
+    });
+  </script>
 </body>
 </html>

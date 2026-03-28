@@ -17,7 +17,7 @@ Host System (macOS/Linux)
         ├── Docker Daemon (Internal)
         ├── Docker Compose (Internal Orchestrator)
         └── Internal Network (172.18.0.0/16)
-            ├── project-s-dashboard (Next.js) :3000
+            ├── project-s-dashboard (Next.js) :3069
             ├── project-s-jellyfin (Media)   :8096
             ├── project-s-nextcloud (Productivity) :8081
             └── project-s-nextcloud-db (MariaDB)
@@ -30,7 +30,7 @@ Host System (macOS/Linux)
 | **Zero Host Requirements** | Users only need Docker installed. No need for Node.js, Python, or DBs on the host. |
 | **Atomic Cleanup** | Deleting the Master Container removes every trace of the stack, including internal networks and volumes (unless mapped). |
 | **Security Sandbox** | Vulnerabilities in internal services are double-layered; they must escape the internal container *and* the Master Container. |
-| **Port Mapping** | We map only necessary ports (3000, 8096, 8081) to the host, keeping the internal service mesh private. |
+| **Port Mapping** | We map only necessary ports (3069, 8096, 8081) to the host, keeping the internal service mesh private. |
 
 ---
 
@@ -87,7 +87,7 @@ To launch the full HomeForge environment from scratch:
    ```bash
    sudo docker logs -f homeforge-master
    ```
-4. **Access UI:** Open [http://localhost:3000](http://localhost:3000) once the dashboard container reports healthy.
+4. **Access UI:** Open [http://localhost:3069](http://localhost:3069) once the dashboard container reports healthy.
 
 ---
 

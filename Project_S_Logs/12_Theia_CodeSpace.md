@@ -41,7 +41,7 @@ theia:
   user: root
   privileged: true
   ports:
-    - '3030:3000'
+    - '3030:3069'
   volumes:
     - .:/home/project/project-s        # Mounts entire Project S root
     - /var/run/docker.sock:/var/run/docker.sock # Control host Docker
@@ -90,7 +90,7 @@ The CodeSpace is accessible via two entry points in the Dashboard UI:
 ## 6. Collaborative Contributions (`saadsh15`)
 
 - **Service Architecture:** Saad established the `privileged` root user strategy to ensure the IDE has full control over the HomeForge environment.
-- **Port Orchestration:** Configured the `3030` port mapping to prevent conflicts with the Dashboard (3000) or Nextcloud (8081).
+- **Port Orchestration:** Configured the `3030` port mapping to prevent conflicts with the Dashboard (3069) or Nextcloud (8081).
 - **UI Integration:** Saad initially built the CodeSpace button and welcome cards (later merged into the main Dashboard by Basil).
 
 ---

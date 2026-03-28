@@ -3,22 +3,10 @@
 import { useTheme } from "@/components/theme-provider"
 import {
   Play,
-  HardDrive,
   Code,
   MessageSquare,
   Key,
-  Home,
-  Database,
-  Shield,
   Cloud,
-  Rss,
-  Film,
-  Music,
-  Server,
-  Wifi,
-  Monitor,
-  Folder,
-  Book,
 } from "lucide-react"
 
 const applications = [
@@ -27,18 +15,6 @@ const applications = [
   { name: "Code Server", url: "http://localhost:3030", icon: Code },
   { name: "Matrix", url: "http://localhost:8082", icon: MessageSquare },
   { name: "Vaultwarden", url: "http://localhost:8083", icon: Key },
-  { name: "Kiwix", url: "http://localhost:8084", icon: Book },
-  { name: "Home Assistant", url: "home.example.com", icon: Home },
-  { name: "PostgreSQL", url: "db.example.com", icon: Database },
-  { name: "Authelia", url: "auth.example.com", icon: Shield },
-  { name: "Plex", url: "plex.example.com", icon: Film },
-  { name: "Navidrome", url: "music.example.com", icon: Music },
-  { name: "Portainer", url: "docker.example.com", icon: Server },
-  { name: "Pi-hole", url: "pihole.example.com", icon: Wifi },
-  { name: "Grafana", url: "grafana.example.com", icon: Monitor },
-  { name: "Filebrowser", url: "files.example.com", icon: Folder },
-  { name: "Miniflux", url: "rss.example.com", icon: Rss },
-  { name: "Syncthing", url: "sync.example.com", icon: HardDrive },
 ]
 
 const bookmarks = {
@@ -52,25 +28,10 @@ const bookmarks = {
     { name: "Dropbox", url: "dropbox.com" },
     { name: "Drive", url: "drive.google.com" },
   ],
-  Design: [
-    { name: "Awwwards", url: "awwwards.com" },
-    { name: "Dribbble", url: "dribbble.com" },
-    { name: "Muz.li", url: "muz.li" },
-  ],
   Dev: [
-    { name: "Codepen", url: "codepen.io" },
-    { name: "Devdocs", url: "devdocs.io" },
     { name: "GitHub", url: "github.com" },
-  ],
-  Media: [
-    { name: "Spotify", url: "spotify.com" },
-    { name: "YouTube", url: "youtube.com" },
-    { name: "Netflix", url: "netflix.com" },
-  ],
-  Tech: [
-    { name: "Hacker News", url: "news.ycombinator.com" },
-    { name: "The Verge", url: "theverge.com" },
-    { name: "Ars Technica", url: "arstechnica.com" },
+    { name: "Devdocs", url: "devdocs.io" },
+    { name: "Stack Overflow", url: "stackoverflow.com" },
   ],
 }
 
@@ -124,54 +85,13 @@ export function WelcomeSection({ onNavigate }: WelcomeSectionProps) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {applications.map((app, index) => {
               const Icon = app.icon
-              const isInternal = ["Jellyfin", "Matrix", "Vaultwarden", "Kiwix"].includes(app.name)
-              const sectionId = app.name.toLowerCase()
-              const href = app.url.startsWith('http') ? app.url : `https://${app.url}`
+              const sectionId = app.name.toLowerCase().replace(" ", "")
               
-              if (isInternal) {
-                return (
-                  <button
-                    key={app.name}
-                    onClick={() => onNavigate?.(sectionId)}
-                    className="group flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-white/[0.04] active:scale-[0.98] text-left w-full"
-                    style={{
-                      animationDelay: `${index * 30}ms`,
-                    }}
-                  >
-                    <div 
-                      className="flex h-10 w-10 items-center justify-center rounded-lg transition-colors"
-                      style={{ 
-                        backgroundColor: `${colorTheme.accent}15`,
-                      }}
-                    >
-                      <Icon 
-                        className="h-5 w-5 transition-colors" 
-                        strokeWidth={1.5}
-                        style={{ color: colorTheme.accent }}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p 
-                        className="text-sm font-semibold truncate"
-                        style={{ color: colorTheme.foreground }}
-                      >
-                        {app.name}
-                      </p>
-                      <p className="text-xs text-foreground/40 truncate uppercase tracking-wider">
-                        Integrated
-                      </p>
-                    </div>
-                  </button>
-                )
-              }
-
               return (
-                <a
+                <button
                   key={app.name}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-white/[0.04] active:scale-[0.98]"
+                  onClick={() => onNavigate?.(sectionId)}
+                  className="group flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-white/[0.04] active:scale-[0.98] text-left w-full border border-white/[0.03] bg-white/[0.01]"
                   style={{
                     animationDelay: `${index * 30}ms`,
                   }}
@@ -195,11 +115,11 @@ export function WelcomeSection({ onNavigate }: WelcomeSectionProps) {
                     >
                       {app.name}
                     </p>
-                    <p className="text-xs text-foreground/40 truncate uppercase tracking-wider">
-                      {app.url}
+                    <p className="text-[10px] text-foreground/40 truncate uppercase tracking-widest">
+                      Integrated
                     </p>
                   </div>
-                </a>
+                </button>
               )
             })}
           </div>
@@ -213,7 +133,7 @@ export function WelcomeSection({ onNavigate }: WelcomeSectionProps) {
           >
             Bookmarks
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
             {Object.entries(bookmarks).map(([category, links]) => (
               <div key={category}>
                 <h3 
