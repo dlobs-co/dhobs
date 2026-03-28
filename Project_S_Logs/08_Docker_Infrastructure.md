@@ -1,59 +1,102 @@
-# Project S — Docker Infrastructure Implementation Log
+# Project S — Docker Infrastructure & Orchestration Log
 
-This document details the core containerization strategy and the deployment architecture for the Project S HomeForge environment. It serves as the definitive record for the project's orchestration layer.
+This document details the core containerization strategy and the deployment architecture for the Project S HomeForge environment. It explains the "Master Container" (Docker-in-Docker) approach and the internal orchestration of the service stack.
 
 ---
 
-## 1. Orchestration Strategy
+## 1. Orchestration Philosophy: The "Master Container"
 
-* **Platform Choice:** Docker Compose was selected as the primary orchestrator for its balance of simplicity and production-grade reliability.
-* **Network Isolation:** All services reside on a private bridge network, with only the Dashboard and specified public services exposed to the host.
-* **Volume Persistence:** Strict mapping between host directories (`./data`, `./config`) and container paths ensures that user data is persistent across updates.
+Project S uses a **Nested Docker (DinD)** architecture to provide a completely isolated, portable environment. This prevents "host pollution" where multiple services clutter the user's primary OS.
 
-## 2. Docker-in-Docker (DinD) Architecture
+### 1.1 Architecture Diagram
 
-The "Master Container" approach provides a secure sandbox for user applications without compromising the host's Docker socket.
+```text
+Host System (macOS/Linux)
+└── run-dind.sh (Entry point)
+    └── project-s-homeforge-dind (Master Container - Privileged)
+        ├── Docker Daemon (Internal)
+        ├── Docker Compose (Internal Orchestrator)
+        └── Internal Network (172.18.0.0/16)
+            ├── project-s-dashboard (Next.js) :3000
+            ├── project-s-jellyfin (Media)   :8096
+            ├── project-s-nextcloud (Productivity) :8081
+            └── project-s-nextcloud-db (MariaDB)
+```
 
-* **Base Image:** `docker:24-dind` (Alpine-based).
-* **Security:** Runs in `--privileged` mode to allow nested container management and internal networking.
-* **Initialization:** A custom `/start.sh` handles the sequential startup of the internal Docker daemon and the service stack.
-* **Host Mapping:** Host `./dind-data` is mapped to internal `/homeforge/data` for recursive persistence.
+### 1.2 Why Docker-in-Docker (DinD)?
 
-## 3. Multi-Stage Build Pipeline
+| Feature | Benefit |
+|---|---|
+| **Zero Host Requirements** | Users only need Docker installed. No need for Node.js, Python, or DBs on the host. |
+| **Atomic Cleanup** | Deleting the Master Container removes every trace of the stack, including internal networks and volumes (unless mapped). |
+| **Security Sandbox** | Vulnerabilities in internal services are double-layered; they must escape the internal container *and* the Master Container. |
+| **Port Mapping** | We map only necessary ports (3000, 8096, 8081) to the host, keeping the internal service mesh private. |
 
-The Project S Dashboard utilizes a multi-stage `Dockerfile` to optimize for security and performance.
+---
 
-* **Stage 1: Dependencies (`deps`)**
-    * Uses `node:20-alpine`.
-    * Installs `libc6-compat` for binary compatibility.
-    * Executes `npm ci` for deterministic dependency resolution.
-* **Stage 2: Builder (`builder`)**
-    * Copies dependencies and source code.
-    * Executes `npm run build` to generate the Next.js standalone package.
-* **Stage 3: Runner (`runner`)**
-    * Minimal production image running as a non-root `nextjs` user.
-    * Environment: `NODE_ENV=production`, `PORT=3000`.
-    * Output: Includes only `.next/standalone` and `.next/static`.
+## 2. Infrastructure Components
 
-## 4. Technical Specifications
+### 2.1 `Dockerfile.dind` (The Master Image)
+The Master Container is based on `docker:24-dind` (Alpine). It is customized to include the full Project S source and a startup manager.
 
-| Component | Version | Port | Persistence Path |
-|---|---|---|---|
-| Docker | 24.x | N/A | `/var/lib/docker` (internal) |
-| Docker Compose | 2.x | N/A | N/A |
-| Node.js | 20.x (LTS) | 3000 | `/app/.next` |
-| OS | Alpine 3.19 | N/A | N/A |
+- **Alpine 3.19:** Minimal footprint.
+- **Tools:** `docker-cli-compose`, `bash`.
+- **Startup Script (`/start.sh`):**
+    1. Launches `dockerd` (the internal daemon) in the background.
+    2. Polls `docker info` until the daemon is responsive.
+    3. Executes `docker compose up` inside the container to spin up the sub-stack.
 
-## 5. Deployment Workflow
+### 2.2 `run-dind.sh` (The Bootstrapper)
+This script automates the build and execution of the Master Container.
 
-1. Execute `./run-dind.sh` with root/sudo privileges.
-2. The script builds `project-s-homeforge-dind` if not present.
-3. The Master Container initiates the internal Compose stack: `dashboard`, `jellyfin`, `nextcloud`, `db`.
-4. Health checks monitor service availability before exposing ports to the host.
+- **Privileged Mode:** Required (`--privileged`) for the internal Docker daemon to manage cgroups and networking.
+- **Recursive Persistence:** Maps `$(pwd)/dind-data` on the host to `/homeforge/data` inside the Master. This ensures that even if the Master is rebuilt, the sub-service data (Jellyfin/Nextcloud) survives.
 
-## 6. Credits & Licenses
+---
 
-* **Docker & Docker Compose:** Developed by Docker, Inc. — **Apache License 2.0**.
-* **Docker-in-Docker (DinD):** Originally conceived by Jérôme Petazzoni — **Apache License 2.0**.
-* **Alpine Linux:** Security-oriented, lightweight Linux distribution — **MIT License**.
-* **Implementation:** Saad Shafique (@saadsh15).
+## 3. Internal Service Stack (`docker-compose.yml`)
+
+The internal stack defines four primary services:
+
+| Service | Image | Purpose |
+|---|---|---|
+| `dashboard` | `(local build)` | Next.js 15 UI, the "brain" of Project S. |
+| `jellyfin` | `jellyfin/jellyfin` | Media server and NAS management. |
+| `nextcloud` | `nextcloud:latest` | Productivity suite (Files, Docs, Calendar). |
+| `db` | `mariadb:10.6` | Dedicated SQL backend for Nextcloud. |
+
+### Dashboard Multi-Stage Build
+The dashboard `Dockerfile` (located in `Dashboard/Dashboard1/`) uses a 3-stage pipeline:
+1. **Deps:** Installs `npm` dependencies.
+2. **Builder:** Runs `npm run build` to generate the `.next` output.
+3. **Runner:** A minimal production image that only contains the standalone server and static assets, reducing image size by ~80%.
+
+---
+
+## 4. Setup & Deployment Guide
+
+To launch the full HomeForge environment from scratch:
+
+1. **Clone the repo:** `git clone <repo-url>`
+2. **Execute Bootstrapper:**
+   ```bash
+   chmod +x run-dind.sh
+   ./run-dind.sh
+   ```
+3. **Monitor Progress:**
+   ```bash
+   sudo docker logs -f homeforge-master
+   ```
+4. **Access UI:** Open [http://localhost:3000](http://localhost:3000) once the dashboard container reports healthy.
+
+---
+
+## 5. Credits & Licensing
+
+- **Docker/Compose:** Apache 2.0.
+- **Alpine Linux:** MIT.
+- **Orchestration Logic:** Designed and implemented by Saad Shafique (@saadsh15).
+- **Audit Reference:** Follows the security guidelines established in `07_Docker_Integration_Audit.md`.
+
+**Status:** Operational.
+**Next Steps:** Implement Traefik or Nginx-Proxy-Manager within the stack for SSL termination.
