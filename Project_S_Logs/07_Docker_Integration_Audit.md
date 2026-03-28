@@ -39,7 +39,7 @@ Host Machine
 │       ├── project-s-jellyfin    → :8096
 │       ├── project-s-nextcloud   → :8081
 │       ├── project-s-nextcloud-db (MariaDB, internal)
-│       └── project-s-dashboard   → :3000 (production build)
+│       └── project-s-dashboard   → :3069 (production build)
 │
 └── Next.js Dev Server (separate)
     └── npx next dev --port 5111
@@ -77,7 +77,7 @@ Changed the proposed CodeSpace IDE from VS Code (`code-server`) to **Eclipse The
 |---|---|---|
 | 3 | Hardcoded IP `192.168.1.68` | Iframes break on any other network (fixed in `fix/replace-hardcoded-ip` branch) |
 | 4 | Hardcoded DB credentials | `nextcloud`/`nextcloud` in plain text in compose file. Should be `.env` |
-| 5 | Dashboard port conflict | Compose maps `:3000`, dev server uses `:5111` — confusing if both run |
+| 5 | Dashboard port conflict | Compose maps `:3069`, dev server uses `:5111` — confusing if both run |
 
 ### Medium (tech debt / cleanup)
 

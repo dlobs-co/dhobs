@@ -64,7 +64,7 @@ OpenSource HomeLabbing/
 ## 4. Configuration Highlights
 
 - **WebSocket Support:** Enabled `WEBSOCKET_ENABLED: true` to support real-time vault synchronization across multiple devices.
-- **Port Orchestration:** Saad assigned port `8083` to ensure no conflicts with Nextcloud (`8081`), Matrix (`8082`), or the Dashboard (`3000`).
+- **Port Orchestration:** Saad assigned port `8083` to ensure no conflicts with Nextcloud (`8081`), Matrix (`8082`), or the Dashboard (`3069`).
 - **Data Path:** Standardized the `/data` folder for all persistent assets, including user icons and file attachments.
 
 ---

@@ -7,10 +7,20 @@ import { DashboardSection } from "@/components/dashboard/dashboard-section"
 import { MediaSection } from "@/components/dashboard/media-section"
 import { MatrixSection } from "@/components/dashboard/matrix-section"
 import { VaultwardenSection } from "@/components/dashboard/vaultwarden-section"
-import { KiwixSection } from "@/components/dashboard/kiwix-section"
 import { StorageSection } from "@/components/dashboard/storage-section"
 import { TerminalPanel } from "@/components/dashboard/terminal-panel"
 import { useTheme } from "@/components/theme-provider"
+import { Play, MessageSquare, Key, Cloud, Code, LucideIcon } from "lucide-react"
+
+const appMeta: Record<string, { label: string, icon: LucideIcon }> = {
+  media: { label: "Jellyfin", icon: Play },
+  matrix: { label: "Matrix", icon: MessageSquare },
+  vaultwarden: { label: "Vaultwarden", icon: Key },
+  nextcloud: { label: "Nextcloud", icon: Cloud },
+  codespace: { label: "Code Space", icon: Code },
+  jellyfin: { label: "Jellyfin", icon: Play },
+  codeserver: { label: "Code Server", icon: Code }
+}
 
 export default function HomePage() {
   const { colorTheme } = useTheme()
@@ -18,6 +28,7 @@ export default function HomePage() {
   const [mounted, setMounted] = useState(false)
   const [terminalOpen, setTerminalOpen] = useState(false)
   const [currentSection, setCurrentSection] = useState("home")
+  const [recentApp, setRecentApp] = useState<{ id: string, label: string, icon: LucideIcon } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -29,7 +40,6 @@ export default function HomePage() {
       if (!containerRef.current || currentSection !== "home") return
       const scrollTop = window.scrollY
       const windowHeight = window.innerHeight
-      // Calculate progress based on first screen scroll
       const progress = Math.min(scrollTop / windowHeight, 1)
       setScrollProgress(progress)
     }
@@ -38,12 +48,20 @@ export default function HomePage() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [currentSection])
 
-  // Use default background before mount to prevent hydration mismatch
   const bgColor = mounted ? colorTheme.background : "#0a0a0a"
   const accentColor = mounted ? colorTheme.accent : "#d4e157"
 
   const handleNavigate = (section: string) => {
     setCurrentSection(section)
+    
+    // Update recent app if it's a module
+    if (appMeta[section]) {
+      setRecentApp({
+        id: section,
+        ...appMeta[section]
+      })
+    }
+
     if (section === "home") {
       window.scrollTo({ top: 0, behavior: "smooth" })
     }
@@ -100,11 +118,11 @@ export default function HomePage() {
         onNavigate={handleNavigate}
         terminalOpen={terminalOpen}
         onToggleTerminal={() => setTerminalOpen(prev => !prev)}
+        recentApp={recentApp}
       />
 
       {currentSection === "home" ? (
         <>
-          {/* Welcome Section with fade out on scroll */}
           <div
             style={{
               opacity: 1 - scrollProgress * 1.5,
@@ -114,7 +132,6 @@ export default function HomePage() {
           >
             <WelcomeSection onNavigate={handleNavigate} />
           </div>
-          {/* Dashboard Section with fade in on scroll */}
           <div
             style={{
               opacity: scrollProgress > 0.3 ? (scrollProgress - 0.3) / 0.7 : 0,
@@ -130,7 +147,6 @@ export default function HomePage() {
           {(currentSection === "media" || currentSection === "jellyfin") && <MediaSection />}
           {currentSection === "matrix" && <MatrixSection />}
           {currentSection === "vaultwarden" && <VaultwardenSection />}
-          {currentSection === "kiwix" && <KiwixSection />}
           {currentSection === "storage" && <StorageSection />}
           {/* Add other sections here as needed */}
         </div>

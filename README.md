@@ -32,7 +32,7 @@ Project S is fully containerized using a **Docker-in-Docker (DinD)** setup, allo
 
 3. **Access Services:**
    Wait a few minutes for the internal build to complete, then access:
-   - **Main Dashboard:** [http://localhost:3000](http://localhost:3000)
+   - **Main Dashboard:** [http://localhost:3069](http://localhost:3069)
    - **Nextcloud:** [http://localhost:8081](http://localhost:8081)
    - **Jellyfin:** [http://localhost:8096](http://localhost:8096)
    - **Theia CodeSpace:** [http://localhost:3030](http://localhost:3030)
