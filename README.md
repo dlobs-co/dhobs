@@ -6,46 +6,59 @@ A collaborative project building a unified, self-hosted digital hub platform.
 
 This repository contains the implementation plan, product definition, technical feasibility analysis, and documentation for Project S — a self-hosted operating system for the home server that integrates the best open-source tools into a single, easy-to-manage interface.
 
-## Note
-This will be the top version with all the described features there will be a different repository for a Business version and a lite version
+---
 
-## Deployment
+## 1. 🚀 QUICK START (HOW TO STARTUP)
 
-Project S is fully containerized using a **Docker-in-Docker (DinD)** setup, allowing the entire ecosystem (Dashboard, Jellyfin, Nextcloud) to run within a single master container.
+To start the entire Project S ecosystem perfectly with a single command, use the **`boom.sh`** script located in the root directory:
 
-### Prerequisites
-- Docker installed on your host machine.
-- Privileged execution rights (required for DinD).
+```bash
+./boom.sh
+```
 
-### Running with Docker
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/BasilSuhail/ProjectS-HomeForge.git
-   cd ProjectS-HomeForge
-   ```
+**What this script does:**
+1.  **Clean Up:** Automatically removes any old or conflicting containers to ensure a fresh state.
+2.  **Permissions:** Automatically fixes file permission issues (especially for Matrix/Synapse logging).
+3.  **Orchestration:** Starts all services (Proxy, Dashboard, Backends, Databases) in the correct order.
+4.  **Health Check:** Waits for the Dashboard to be fully ready and responding.
+5.  **Auto-Launch:** Automatically opens your default web browser to the dashboard.
 
-2. **Start the environment:**
-   Use the provided runner script to build and launch the master container:
-   ```bash
-   ./run-dind.sh
-   ```
+---
 
-3. **Access Services:**
-   Wait a few minutes for the internal build to complete, then access:
-   - **Main Dashboard:** [http://localhost:3069](http://localhost:3069)
-   - **Nextcloud:** [http://localhost:8081](http://localhost:8081)
-   - **Jellyfin:** [http://localhost:8096](http://localhost:8096)
-   - **Theia CodeSpace:** [http://localhost:3030](http://localhost:3030)
-   - **Matrix (Element):** [http://localhost:8082](http://localhost:8082)
+## 2. 📦 INTEGRATED SERVICES (WHAT IS ADDED)
 
-### Data Persistence
-Project data and configurations are persisted in the `./dind-data` directory on your host machine.
+The following services are currently functional and fully integrated into the Project S Dashboard:
 
-### Developer CodeSpace (Theia IDE)
-The integrated Theia CodeSpace provides a professional development environment:
-- **Persistent Workspace:** All code and files created in the IDE are stored in the `./workspace` directory on the host.
-- **Docker Integration:** You can run `docker` commands directly from the Theia terminal to manage the Project S ecosystem or build new containers.
-- **Native Experience:** Full filesystem access within the workspace allows for a seamless, VS Code-like experience.
+-   **Main Dashboard:** The central hub for all services (Port `:3069`).
+-   **Jellyfin:** Media & Entertainment server.
+-   **Nextcloud:** Cloud productivity and file management.
+-   **Matrix (Element):** Secure, encrypted communication suite.
+-   **Vaultwarden:** Enterprise-grade password management.
+-   **Theia CodeSpace:** Integrated development environment (Port `:3030`).
+
+---
+
+## 3. 🛠️ ADDING NEW SERVICES (SCALING & EXPANSION)
+
+To add more applications to the ecosystem in the future, follow this 4-step checklist:
+
+1.  **Docker:** Add the service to `docker-compose.yml`. (No need to expose host ports).
+2.  **Gateway:** Add a proxied location in `config/nginx/nginx.conf` to handle security headers.
+3.  **Launcher:** Add the app to the `applications` array in `welcome-section.tsx`.
+4.  **Windowing:** Define the window component in `app/page.tsx` so it opens as a draggable app.
+
+*Note: `boom.sh` will automatically detect and start any new services added to the compose file.*
+
+---
+
+## 4. 📝 PROJECT DOCUMENTATION & LOGS
+
+Stay up to date with the development progress through our detailed logging system:
+
+-   **Technical Logs:** All research and implementation records are located in the **`Project_S_Logs/`** directory.
+-   **Static UI Preview:** For a quick look at the interface without running Docker, open the **`Project_S_Logs/06_Dashboard_Technical_Report.html`** file in any browser. This is a functional, high-fidelity mirror of the dashboard frontend.
+
+---
 
 ## Contributors
 

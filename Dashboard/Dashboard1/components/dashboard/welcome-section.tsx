@@ -10,11 +10,11 @@ import {
 } from "lucide-react"
 
 const applications = [
-  { name: "Jellyfin", url: "http://localhost:8096", icon: Play },
-  { name: "Nextcloud", url: "http://localhost:8081", icon: Cloud },
+  { name: "Jellyfin", url: "/media/", icon: Play },
+  { name: "Nextcloud", url: "/cloud/", icon: Cloud },
   { name: "Code Server", url: "http://localhost:3030", icon: Code },
-  { name: "Matrix", url: "http://localhost:8082", icon: MessageSquare },
-  { name: "Vaultwarden", url: "http://localhost:8083", icon: Key },
+  { name: "Matrix", url: "/chat/", icon: MessageSquare },
+  { name: "Vaultwarden", url: "/passwords/", icon: Key },
 ]
 
 const bookmarks = {

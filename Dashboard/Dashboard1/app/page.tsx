@@ -7,19 +7,36 @@ import { DashboardSection } from "@/components/dashboard/dashboard-section"
 import { MediaSection } from "@/components/dashboard/media-section"
 import { MatrixSection } from "@/components/dashboard/matrix-section"
 import { VaultwardenSection } from "@/components/dashboard/vaultwarden-section"
+import { NextcloudSection } from "@/components/dashboard/nextcloud-section"
+import { KiwixSection } from "@/components/dashboard/kiwix-section"
 import { StorageSection } from "@/components/dashboard/storage-section"
+import { CodeServerSection } from "@/components/dashboard/codeserver-section"
 import { TerminalPanel } from "@/components/dashboard/terminal-panel"
+import { WindowWrapper } from "@/components/dashboard/window-wrapper"
 import { useTheme } from "@/components/theme-provider"
-import { Play, MessageSquare, Key, Cloud, Code, LucideIcon } from "lucide-react"
+import { Play, MessageSquare, Key, Cloud, Code, HardDrive, Book, LucideIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
+
+export interface OpenApp {
+  id: string
+  label: string
+  icon: LucideIcon
+  isMinimized: boolean
+}
 
 const appMeta: Record<string, { label: string, icon: LucideIcon }> = {
   media: { label: "Jellyfin", icon: Play },
-  matrix: { label: "Matrix", icon: MessageSquare },
-  vaultwarden: { label: "Vaultwarden", icon: Key },
-  nextcloud: { label: "Nextcloud", icon: Cloud },
-  codespace: { label: "Code Space", icon: Code },
   jellyfin: { label: "Jellyfin", icon: Play },
-  codeserver: { label: "Code Server", icon: Code }
+  matrix: { label: "Matrix", icon: MessageSquare },
+  chat: { label: "Matrix", icon: MessageSquare },
+  vaultwarden: { label: "Vaultwarden", icon: Key },
+  passwords: { label: "Vaultwarden", icon: Key },
+  nextcloud: { label: "Nextcloud", icon: Cloud },
+  cloud: { label: "Nextcloud", icon: Cloud },
+  codespace: { label: "Code Server", icon: Code },
+  codeserver: { label: "Code Server", icon: Code },
+  storage: { label: "Storage", icon: HardDrive },
+  kiwix: { label: "Kiwix", icon: Book },
 }
 
 export default function HomePage() {
@@ -28,7 +45,7 @@ export default function HomePage() {
   const [mounted, setMounted] = useState(false)
   const [terminalOpen, setTerminalOpen] = useState(false)
   const [currentSection, setCurrentSection] = useState("home")
-  const [recentApp, setRecentApp] = useState<{ id: string, label: string, icon: LucideIcon } | null>(null)
+  const [openApps, setOpenApps] = useState<OpenApp[]>([])
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -40,6 +57,7 @@ export default function HomePage() {
       if (!containerRef.current || currentSection !== "home") return
       const scrollTop = window.scrollY
       const windowHeight = window.innerHeight
+      // Calculate progress based on first screen scroll
       const progress = Math.min(scrollTop / windowHeight, 1)
       setScrollProgress(progress)
     }
@@ -52,19 +70,45 @@ export default function HomePage() {
   const accentColor = mounted ? colorTheme.accent : "#d4e157"
 
   const handleNavigate = (section: string) => {
-    setCurrentSection(section)
-    
-    // Update recent app if it's a module
-    if (appMeta[section]) {
-      setRecentApp({
-        id: section,
-        ...appMeta[section]
-      })
+    if (section === "home" || section === "metrics") {
+      setCurrentSection(section)
+      if (section === "home") {
+        window.scrollTo({ top: 0, behavior: "smooth" })
+      }
+      return
     }
 
-    if (section === "home") {
-      window.scrollTo({ top: 0, behavior: "smooth" })
+    // Check if app is already open
+    const existingApp = openApps.find(app => app.id === section)
+    if (existingApp) {
+      setOpenApps(openApps.map(app => 
+        app.id === section ? { ...app, isMinimized: false } : app
+      ))
+      setCurrentSection(section)
+    } else if (appMeta[section]) {
+      // Open new app
+      const newApp = {
+        id: section,
+        ...appMeta[section],
+        isMinimized: false
+      }
+      setOpenApps([...openApps, newApp])
+      setCurrentSection(section)
     }
+  }
+
+  const closeApp = (id: string) => {
+    setOpenApps(prev => prev.filter(app => app.id !== id))
+    if (currentSection === id) {
+      setCurrentSection("home")
+    }
+  }
+
+  const minimizeApp = (id: string) => {
+    setOpenApps(prev => prev.map(app => 
+      app.id === id ? { ...app, isMinimized: true } : app
+    ))
+    setCurrentSection("home")
   }
 
   return (
@@ -74,7 +118,7 @@ export default function HomePage() {
       style={{ backgroundColor: bgColor }}
     >
       {/* Aurora Glow Background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0" aria-hidden="true">
         <div
           className="absolute rounded-full blur-[120px] opacity-30"
           style={{
@@ -112,45 +156,69 @@ export default function HomePage() {
         />
       </div>
 
-      {/* Sidebar */}
+      {/* Sidebar (Dock) */}
       <Sidebar
-        activeSection={currentSection === "home" ? "dashboard" : currentSection}
+        activeSection={currentSection}
         onNavigate={handleNavigate}
         terminalOpen={terminalOpen}
         onToggleTerminal={() => setTerminalOpen(prev => !prev)}
-        recentApp={recentApp}
+        openApps={openApps}
       />
 
-      {currentSection === "home" ? (
-        <>
-          <div
-            style={{
-              opacity: 1 - scrollProgress * 1.5,
-              transform: `translateY(${-scrollProgress * 50}px)`,
-              transition: "opacity 0.1s ease-out, transform 0.1s ease-out",
-            }}
-          >
-            <WelcomeSection onNavigate={handleNavigate} />
-          </div>
-          <div
-            style={{
-              opacity: scrollProgress > 0.3 ? (scrollProgress - 0.3) / 0.7 : 0,
-              transform: `translateY(${(1 - scrollProgress) * 30}px)`,
-              transition: "opacity 0.1s ease-out, transform 0.1s ease-out",
-            }}
-          >
+      <main className="relative z-10 h-full w-full">
+        {/* HOME VIEW (Static / Scrollable) */}
+        <div className={cn(
+          "h-full w-full transition-all duration-500",
+          (currentSection === "home" || currentSection === "metrics") ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none absolute inset-0"
+        )}>
+          {currentSection === "home" ? (
+            <>
+              <div
+                style={{
+                  opacity: 1 - scrollProgress * 1.5,
+                  transform: `translateY(${-scrollProgress * 50}px)`,
+                  transition: "opacity 0.1s ease-out, transform 0.1s ease-out",
+                }}
+              >
+                <WelcomeSection onNavigate={handleNavigate} />
+              </div>
+              <div
+                style={{
+                  opacity: scrollProgress > 0.3 ? (scrollProgress - 0.3) / 0.7 : 0,
+                  transform: `translateY(${(1 - scrollProgress) * 30}px)`,
+                  transition: "opacity 0.1s ease-out, transform 0.1s ease-out",
+                }}
+              >
+                <DashboardSection />
+              </div>
+            </>
+          ) : (
             <DashboardSection />
-          </div>
-        </>
-      ) : (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          {(currentSection === "media" || currentSection === "jellyfin") && <MediaSection />}
-          {currentSection === "matrix" && <MatrixSection />}
-          {currentSection === "vaultwarden" && <VaultwardenSection />}
-          {currentSection === "storage" && <StorageSection />}
-          {/* Add other sections here as needed */}
+          )}
         </div>
-      )}
+
+        {/* APP WINDOWS */}
+        {openApps.map((app) => (
+          <WindowWrapper
+            key={app.id}
+            title={app.label}
+            isActive={currentSection === app.id}
+            onClose={() => closeApp(app.id)}
+            onMinimize={() => minimizeApp(app.id)}
+            onClick={() => setCurrentSection(app.id)}
+          >
+            <div className="w-full h-full bg-black/20">
+              {(app.id === "media" || app.id === "jellyfin") && <MediaSection isWindow />}
+              {(app.id === "matrix" || app.id === "chat") && <MatrixSection isWindow />}
+              {(app.id === "vaultwarden" || app.id === "passwords") && <VaultwardenSection isWindow />}
+              {(app.id === "nextcloud" || app.id === "cloud") && <NextcloudSection isWindow />}
+              {app.id === "kiwix" && <KiwixSection isWindow />}
+              {app.id === "storage" && <StorageSection isWindow />}
+              {(app.id === "codeserver" || app.id === "codespace") && <CodeServerSection isWindow />}
+            </div>
+          </WindowWrapper>
+        ))}
+      </main>
 
       {/* Terminal Panel */}
       <TerminalPanel open={terminalOpen} onClose={() => setTerminalOpen(false)} />
