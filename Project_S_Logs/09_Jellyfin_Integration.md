@@ -1,40 +1,112 @@
 # Project S — Jellyfin Media Integration Log
 
-This document records the integration of the Jellyfin Media Server into the Project S dashboard as the primary NAS and entertainment layer.
+This document records the integration of the Jellyfin Media Server into the Project S dashboard, serving as the core of the HomeForge entertainment and NAS layer.
 
 ---
 
-## 1. Integration Goal
+## 1. Goal: Local, High-Performance Media Hosting
 
-* To provide a high-performance, open-source media management solution.
-* To ensure total data privacy by hosting all media assets locally.
-* To offer a seamless "Netflix-style" experience directly within the Project S Dashboard.
+The objective was to embed a professional-grade media player directly within the Project S dashboard without sacrificing privacy or local control. This allows users to access their private movie, TV, and music libraries from a single, unified interface.
 
-## 2. Technical Architecture
+### Why Jellyfin?
+- **License:** 100% Free and Open Source (**MIT/GPLv2 hybrid**). No "Premiere" tiers or remote-auth requirements.
+- **Portability:** Rock-solid Docker images with hardware acceleration support.
+- **Frontend Compatibility:** The web interface is highly responsive and works seamlessly inside iframes.
 
-* **Service Type:** Containerized service within the Docker Compose stack.
-* **Embedding Method:** Integrated via an iframe in the `MediaSection.tsx` component.
-* **Network Path:** Internal traffic routed via `project-s-jellyfin:8096`.
-* **Resource Mapping:**
-    * `/config`: Persistent metadata and user settings.
-    * `/cache`: Transcoding and image cache.
-    * `/media`: Read-only access to the host's primary media library.
+---
 
-## 3. Implementation Details
+## 2. Technical Architecture (Dockerized)
 
-* **Visual Consistency:** The iframe is housed within a GlassCard container with `backdrop-blur-xl` and `bg-black/40` styling to match the Blackboard theme.
-* **Navigation:** Sidebar "Media" button triggers a smooth section swap via the main App Router state.
-* **Persistence:** All user watch history and library scans are stored in `./data/jellyfin` on the host system.
+The Jellyfin service is a first-class citizen in the Project S `docker-compose.yml` stack, configured for maximum persistence and performance.
 
-## 4. Research & Selection Criteria
+### 2.1 Service Configuration
 
-* **License:** Jellyfin was chosen specifically for its **MIT License**, avoiding the proprietary tiers found in Plex or Emby.
-* **Web Accessibility:** Fully responsive web interface that works across desktop and mobile browsers.
-* **API Surface:** Robust REST API allows for future "Now Playing" widgets on the Dashboard home screen.
+```yaml
+jellyfin:
+  image: jellyfin/jellyfin:latest
+  container_name: project-s-jellyfin
+  ports:
+    - '8096:8096'
+  volumes:
+    - ./data/jellyfin/config:/config   # User profiles, library DBs, & metadata
+    - ./data/jellyfin/cache:/cache     # Transcoding and image cache
+    - ./data/media:/media              # The actual user media library
+  restart: 'unless-stopped'
+```
 
-## 5. Credits & Licenses
+---
 
-* **Jellyfin:** The volunteer-built media solution — **MIT License**.
-* **Project Repository:** [github.com/jellyfin/jellyfin](https://github.com/jellyfin/jellyfin)
-* **Lead Integrator:** Saad Shafique (@saadsh15).
-* **Reference:** Task 3 in Project S Roadmap.
+## 3. Data & File Structure
+
+The integration maintains a strict separation between application configuration, ephemeral cache, and user media assets.
+
+### 3.1 Repository Mapping
+
+```text
+OpenSource HomeLabbing/
+├── data/
+│   ├── jellyfin/
+│   │   ├── config/             ← User profiles, library DBs, & metadata
+│   │   └── cache/              ← Transcoding chunks & image thumbnails
+│   └── media/                  ← Primary mount for Movie/TV/Music folders
+└── Dashboard/Dashboard1/
+    └── components/dashboard/
+        └── media-section.tsx   ← React component for iframe embedding
+```
+
+### 3.2 Persistence Strategy
+
+| Host Path | Container Path | Purpose |
+| :--- | :--- | :--- |
+| `data/jellyfin/config` | `/config` | Stores the `jellyfin.db`, plugin data, and metadata. |
+| `data/jellyfin/cache` | `/cache` | Stores transcoded video chunks and image thumbnails. |
+| `data/media` | `/media` | The primary mount point for the user's movie, music, and show folders. |
+
+---
+
+## 4. Dashboard Implementation (`media-section.tsx`)
+
+The integration uses a **Secure Iframe** approach, allowing the Dashboard to act as a unified portal while Jellyfin handles the heavy lifting of streaming.
+
+### 4.1 Component Logic
+The `MediaSection` component in `Dashboard/Dashboard1/components/dashboard/media-section.tsx` wraps the iframe in a styled glass container.
+
+- **Dynamic Navigation:** The sidebar "Media" button triggers a React state change (`currentSection: "media"`) in the main `app/page.tsx`.
+- **Iframe Permissions:** Explicitly allows `autoplay`, `encrypted-media`, and `fullscreen` to ensure the player functions exactly like a native app.
+- **localhost Transition:** Following an audit in Log 07, hardcoded LAN IPs were replaced with `localhost` for cross-environment compatibility.
+
+---
+
+## 5. Collaborative Contributions (`saadsh15`)
+
+- **Dockerization:** Saad implemented the initial `jellyfin` service block and established the volume mapping strategy.
+- **DinD Support:** Integrated Jellyfin into the `Dockerfile.dind` master image for isolated sandbox testing.
+- **Glass UI Integration:** Styled the media section using `backdrop-blur-xl` and `bg-black/40` to match the Blackboard design language.
+
+---
+
+## 6. Iteration History
+
+| Version | Date | Changes |
+|---|---|---|
+| v1 | 2026-03-24 | Initial docker-compose service definition and media folder mapping |
+| v2 | 2026-03-25 | Created `media-section.tsx` with iframe embedding and sidebar routing |
+| v3 | 2026-03-26 | Refactored IP addresses to `localhost` and added DinD support |
+
+---
+
+## 7. Next Steps
+
+- [ ] Implement "Now Playing" widgets on the main dashboard using Jellyfin REST API.
+- [ ] Add hardware acceleration (VAAPI/NVENC) toggle in the HomeForge settings UI.
+- [ ] Sync Dashboard theme colors (Blackboard) with Jellyfin web CSS (Custom CSS injection).
+
+---
+
+## 8. Credits & Reference
+
+- **Jellyfin Team:** For the best open-source media solution.
+- **Implementation:** Saad Shafique (@saadsh15).
+- **Reference:** Task 3 in `Project_S_Roadmap.md`.
+
+**Status:** Operational (v1.0).
