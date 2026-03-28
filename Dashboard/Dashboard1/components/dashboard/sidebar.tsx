@@ -18,12 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-
-interface NavItem {
-  icon: LucideIcon | React.ElementType
-  label: string
-  id: string
-}
+import { type OpenApp } from "@/app/page"
 
 interface SidebarProps {
   className?: string
@@ -31,11 +26,7 @@ interface SidebarProps {
   onNavigate?: (section: string) => void
   terminalOpen?: boolean
   onToggleTerminal?: () => void
-  recentApp?: {
-    id: string
-    label: string
-    icon: LucideIcon | React.ElementType
-  } | null
+  openApps?: OpenApp[]
 }
 
 export function Sidebar({ 
@@ -44,7 +35,7 @@ export function Sidebar({
   onNavigate, 
   terminalOpen, 
   onToggleTerminal,
-  recentApp 
+  openApps = [] 
 }: SidebarProps) {
   const [showSettings, setShowSettings] = useState(false)
   const [showThemes, setShowThemes] = useState(false)
@@ -60,10 +51,10 @@ export function Sidebar({
           className
         )}
       >
-        {/* Logo */}
+        {/* Logo - NO DOT HERE */}
         <div className="flex justify-center px-3 pb-3">
           <div 
-            className="flex h-9 w-9 items-center justify-center rounded-xl font-bold text-sm"
+            className="flex h-9 w-9 items-center justify-center rounded-xl font-bold text-sm transition-transform active:scale-95"
             style={{ 
               backgroundColor: colorTheme.accent,
               color: colorTheme.accentForeground 
@@ -76,34 +67,46 @@ export function Sidebar({
         {/* Divider */}
         <div className="mx-3 h-px bg-white/[0.06]" />
 
-        {/* Main Navigation */}
-        <nav className="flex flex-1 flex-col items-center gap-1 px-2 py-3">
+        {/* Main Navigation (Home & Metrics) */}
+        <nav className="flex flex-col items-center gap-1 px-2 py-3">
           <NavButton 
-            item={{ icon: LayoutGrid, label: "Home", id: "home" }} 
+            icon={LayoutGrid}
+            label="Home"
             active={activeSection === "home" || activeSection === "dashboard"}
             onClick={() => onNavigate?.("home")}
             accentColor={colorTheme.accent}
+            isApp={false} 
           />
-          
-          {/* Recent App Dynamic Shortcut */}
-          {recentApp && activeSection !== "home" && activeSection !== "dashboard" && (
-            <NavButton 
-              item={{ icon: recentApp.icon, label: recentApp.label, id: recentApp.id }} 
-              active={activeSection === recentApp.id}
-              onClick={() => onNavigate?.(recentApp.id)}
-              accentColor={colorTheme.accent}
-            />
-          )}
-
-          <div className="my-1 h-px w-4 bg-white/[0.06]" />
-          
           <NavButton 
-            item={{ icon: Activity, label: "System", id: "metrics" }} 
+            icon={Activity}
+            label="Metrics"
             active={activeSection === "metrics"}
             onClick={() => onNavigate?.("metrics")}
             accentColor={colorTheme.accent}
+            isApp={false}
           />
         </nav>
+
+        {/* Dynamic Dock (Open Apps) */}
+        {openApps.length > 0 && (
+          <>
+            <div className="mx-3 h-px bg-white/[0.06] mb-2" />
+            <nav className="flex flex-1 flex-col items-center gap-1 px-2 pb-3">
+              {openApps.map((app) => (
+                <NavButton 
+                  key={app.id}
+                  icon={app.icon}
+                  label={app.label}
+                  active={activeSection === app.id}
+                  onClick={() => onNavigate?.(app.id)}
+                  accentColor={colorTheme.accent}
+                  isApp={true}
+                  isMinimized={app.isMinimized}
+                />
+              ))}
+            </nav>
+          </>
+        )}
 
         {/* Divider */}
         <div className="mx-3 h-px bg-white/[0.06]" />
@@ -164,64 +167,12 @@ export function Sidebar({
           >
             <div className="flex items-center gap-2 mb-3 pb-2 border-b border-white/[0.06]">
               <span className="text-xs font-medium text-white/60 uppercase tracking-wider">Settings</span>
-              <button 
-                onClick={() => setShowSettings(false)}
-                className="ml-auto text-white/40 hover:text-white/80 transition-colors"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
+              <button onClick={() => setShowSettings(false)} className="ml-auto text-white/40 hover:text-white/80 transition-colors"><X className="h-3.5 w-3.5" /></button>
             </div>
-            
-            <button
-              onClick={() => setShowThemes(!showThemes)}
-              className={cn(
-                "flex items-center gap-2 w-full px-3 py-2 rounded-lg transition-all",
-                showThemes 
-                  ? "bg-white/10 text-white" 
-                  : "text-white/70 hover:bg-white/[0.06] hover:text-white"
-              )}
-            >
+            <button onClick={() => setShowThemes(!showThemes)} className="flex items-center gap-2 w-full px-3 py-2 rounded-lg hover:bg-white/5 transition-all">
               <Palette className="h-4 w-4" />
               <span className="text-sm">Color themes</span>
             </button>
-          </div>
-        )}
-
-        {/* Theme Selector Popup */}
-        {showThemes && showSettings && (
-          <div 
-            className={cn(
-              "absolute left-full top-1/2 ml-[140px] -translate-y-1/2",
-              "rounded-2xl border border-white/[0.08] bg-black/70 p-4",
-              "backdrop-blur-2xl shadow-2xl shadow-black/40",
-              "animate-in slide-in-from-left-2 fade-in duration-200",
-              "w-[320px]"
-            )}
-          >
-            <div className="flex items-center gap-2 mb-4 pb-2 border-b border-white/[0.06]">
-              <span className="text-xs font-medium text-white/60 uppercase tracking-wider">Color Themes</span>
-              <button 
-                onClick={() => setShowThemes(false)}
-                className="ml-auto text-white/40 hover:text-white/80 transition-colors"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-            
-            <div className="grid grid-cols-4 gap-2">
-              {colorThemes.map((theme) => (
-                <ThemeButton 
-                  key={theme.id} 
-                  theme={theme} 
-                  active={colorTheme.id === theme.id}
-                  onClick={() => {
-                    setColorTheme(theme)
-                    setShowThemes(false)
-                    setShowSettings(false)
-                  }}
-                />
-              ))}
-            </div>
           </div>
         )}
       </aside>
@@ -230,31 +181,33 @@ export function Sidebar({
 }
 
 function NavButton({ 
-  item, 
+  icon: Icon, 
+  label, 
   active, 
   onClick,
-  accentColor 
+  accentColor,
+  isApp,
+  isMinimized
 }: { 
-  item: NavItem
+  icon: LucideIcon | React.ElementType
+  label: string
   active?: boolean
   onClick?: () => void
   accentColor: string
+  isApp?: boolean
+  isMinimized?: boolean
 }) {
-  const Icon = item.icon
-
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <button
-          onClick={onClick}
-          className="block"
-        >
+        <button onClick={onClick} className="relative group outline-none">
           <div
             className={cn(
-              "relative flex h-9 w-9 items-center justify-center rounded-xl transition-all",
+              "relative flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-300",
               active
                 ? "text-white shadow-lg"
-                : "text-white/50 hover:bg-white/[0.06] hover:text-white/80"
+                : "text-white/50 hover:bg-white/[0.06] hover:text-white/80",
+              isMinimized && !active && "opacity-30 grayscale"
             )}
             style={active ? { 
               backgroundColor: accentColor,
@@ -263,49 +216,21 @@ function NavButton({
           >
             <Icon className="h-[18px] w-[18px]" strokeWidth={1.5} />
           </div>
+          
+          {/* Active Dot - Only for running Apps, not for core navigation */}
+          {isApp && (
+            <div 
+              className={cn(
+                "absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white transition-all duration-500",
+                active ? "opacity-100 scale-100" : "opacity-0 scale-0 group-hover:opacity-40 group-hover:scale-100"
+              )}
+            />
+          )}
         </button>
       </TooltipTrigger>
       <TooltipContent side="right" sideOffset={12}>
-        <p>{item.label}</p>
+        <p>{label}</p>
       </TooltipContent>
     </Tooltip>
-  )
-}
-
-function ThemeButton({ 
-  theme, 
-  active, 
-  onClick 
-}: { 
-  theme: ColorTheme
-  active: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "group relative flex flex-col items-center justify-center rounded-lg p-2 transition-all",
-        "hover:scale-105 active:scale-95",
-        active && "ring-2 ring-white/30"
-      )}
-      style={{ 
-        backgroundColor: theme.preview.bg,
-        border: theme.preview.border ? `1px solid ${theme.preview.border}` : '1px solid transparent'
-      }}
-    >
-      <span 
-        className="text-[10px] font-semibold uppercase tracking-wider"
-        style={{ color: theme.preview.text }}
-      >
-        {theme.name}
-      </span>
-      {active && (
-        <div 
-          className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full border-2 border-black"
-          style={{ backgroundColor: theme.preview.accent }}
-        />
-      )}
-    </button>
   )
 }

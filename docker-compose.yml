@@ -1,11 +1,29 @@
 version: '3.8'
 
 services:
+  nginx:
+    image: nginx:alpine
+    container_name: project-s-proxy
+    ports:
+      - '3069:80'
+      - '8096:8096'
+      - '8081:8081'
+      - '8082:8082'
+      - '8083:8083'
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - dashboard
+      - jellyfin
+      - nextcloud
+      - element
+      - vaultwarden
+    restart: unless-stopped
+
   jellyfin:
     image: jellyfin/jellyfin:latest
     container_name: project-s-jellyfin
-    ports:
-      - '8096:8096'
+    # ports: - '8096:8096' # INTERNAL ONLY (Proxied by Nginx)
     volumes:
       - ./data/jellyfin/config:/config
       - ./data/jellyfin/cache:/cache
@@ -18,8 +36,8 @@ services:
       context: ./Dashboard/Dashboard1
       dockerfile: Dockerfile
     container_name: project-s-dashboard
-    ports:
-      - '3069:3069'
+    environment:
+      - PORT=3069
     restart: 'unless-stopped'
     depends_on:
       - jellyfin
@@ -42,8 +60,6 @@ services:
     image: nextcloud:latest
     container_name: project-s-nextcloud
     restart: always
-    ports:
-      - '8081:80'
     links:
       - db
     volumes:
@@ -55,6 +71,7 @@ services:
       - MYSQL_USER=nextcloud
       - MYSQL_HOST=db
       - NEXTCLOUD_TRUSTED_DOMAINS=localhost 127.0.0.1 192.168.1.68
+      - OVERWRITEHOST=localhost:8081
 
   theia:
     image: ghcr.io/eclipse-theia/theia-ide/theia-ide:latest
@@ -62,7 +79,7 @@ services:
     user: root
     privileged: true
     ports:
-      - '3030:3069'
+      - '3030:3000' # Corrected internal port
     volumes:
       - .:/home/project/project-s
       - /var/run/docker.sock:/var/run/docker.sock
@@ -87,43 +104,26 @@ services:
     container_name: project-s-matrix-server
     depends_on:
       - synapse-db
-    ports:
-      - '8008:8008'
     volumes:
       - ./data/matrix/synapse:/data
-      - ./config/matrix/homeserver.yaml:/homeserver.yaml
-    environment:
-      - SYNAPSE_CONFIG_PATH=/homeserver.yaml
+      - ./config/matrix/homeserver.yaml:/data/homeserver.yaml:ro
     restart: unless-stopped
 
   element:
     image: vectorim/element-web:latest
     container_name: project-s-matrix-client
-    ports:
-      - '8082:80'
+    # ports: - '8082:80' # INTERNAL ONLY (Proxied by Nginx)
     volumes:
-      - ./config/matrix/element-config.json:/app/config.json
+      - ./config/matrix/element-config.json:/app/config.json:ro
     restart: unless-stopped
 
   vaultwarden:
     image: vaultwarden/server:latest
     container_name: project-s-vaultwarden
-    ports:
-      - '8083:80'
+    # ports: - '8083:80' # INTERNAL ONLY (Proxied by Nginx)
     volumes:
       - ./data/vaultwarden:/data
     environment:
       - WEBSOCKET_ENABLED=true
       - DATA_FOLDER=/data
     restart: unless-stopped
-
-  # kiwix:
-  #   build:
-  #     context: ./Kiwix/kiwix-js
-  #     dockerfile: Dockerfile
-  #   container_name: project-s-kiwix-reader
-  #   ports:
-  #     - '8084:80'
-  #   volumes:
-  #     - ./data/kiwix:/usr/share/nginx/html/data
-  #   restart: unless-stopped

@@ -17,7 +17,8 @@ import {
   Image as ImageIcon,
   Music,
   Video,
-  ChevronRight
+  ChevronRight,
+  Activity
 } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
@@ -47,7 +48,11 @@ const mockFiles: FileItem[] = [
   { id: '6', name: 'Background_Music.mp3', type: 'file', size: '8.5 MB', extension: 'mp3', lastModified: '2024-03-21' },
 ]
 
-export function StorageSection() {
+interface StorageSectionProps {
+  isWindow?: boolean
+}
+
+export function StorageSection({ isWindow }: StorageSectionProps) {
   const { colorTheme } = useTheme()
   const [isDragging, setIsDragging] = useState(false)
   const [files, setFiles] = useState<FileItem[]>(mockFiles)
@@ -109,8 +114,8 @@ export function StorageSection() {
     f.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  return (
-    <section className="h-screen w-full pl-24 pr-8 py-8 flex flex-col gap-6 overflow-hidden">
+  const content = (
+    <div className="flex flex-col gap-6 h-full">
       {/* Storage Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -239,25 +244,16 @@ export function StorageSection() {
           </div>
         </div>
       </div>
-    </section>
+    </div>
   )
-}
 
-function Activity(props: any) {
+  if (isWindow) {
+    return <div className="w-full h-full p-6 overflow-hidden">{content}</div>
+  }
+
   return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-    </svg>
+    <section className="h-screen w-full pl-24 pr-8 py-8 flex flex-col overflow-hidden">
+      {content}
+    </section>
   )
 }

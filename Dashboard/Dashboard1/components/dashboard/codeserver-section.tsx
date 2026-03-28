@@ -3,11 +3,11 @@
 import { useTheme } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
 
-interface MatrixSectionProps {
+interface CodeServerSectionProps {
   isWindow?: boolean
 }
 
-export function MatrixSection({ isWindow }: MatrixSectionProps) {
+export function CodeServerSection({ isWindow }: CodeServerSectionProps) {
   const { colorTheme } = useTheme()
 
   const content = (
@@ -18,16 +18,18 @@ export function MatrixSection({ isWindow }: MatrixSectionProps) {
       )}
     >
       <iframe 
-        src="http://localhost:8082" 
+        src="http://localhost:3030" 
         className="w-full h-full border-0"
-        title="Matrix Element Client"
+        title="Code Server IDE"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen
       />
       
-      {/* Overlay to catch errors or show loading if needed */}
-      <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity text-white/20 uppercase text-[10px] tracking-widest">
-         Embedded Matrix Instance
+      {/* Overlay */}
+      <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+         <div className="bg-black/60 px-4 py-2 rounded-full text-xs text-white/40 uppercase tracking-widest">
+           Embedded IDE Instance
+         </div>
       </div>
     </div>
   )
