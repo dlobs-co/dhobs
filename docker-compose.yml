@@ -52,6 +52,8 @@ services:
       - '8081:80'
     links:
       - db
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./data/nextcloud/html:/var/www/html
       - ./data/nextcloud/data:/var/www/nextcloud_data
@@ -64,6 +66,27 @@ services:
       - OVERWRITEHOST=localhost:8081
       - OVERWRITEPROTOCOL=http
       - NEXTCLOUD_DATA_DIR=/var/www/nextcloud_data
+      - NEXTCLOUD_INIT_HTACCESS=true
+
+  collabora:
+    image: collabora/code:latest
+    container_name: project-s-collabora
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - aliasgroup1=http://localhost:8081
+      - server_name=localhost:9980
+      - dictionaries=en_US
+      - username=admin
+      - password=admin
+      - extra_params=--o:ssl.enable=false --o:ssl.termination=false
+    cap_add:
+      - MKNOD
+      - SYS_ADMIN
+    security_opt:
+      - seccomp=unconfined
+    depends_on:
+      - nextcloud
 
   theia:
     image: ghcr.io/eclipse-theia/theia-ide/theia-ide:latest
