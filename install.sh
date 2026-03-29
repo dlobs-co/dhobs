@@ -54,15 +54,50 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     fi
 fi
 
-# 4. Initialize Matrix Element configuration
-# This prevents Docker from creating a directory instead of a file during volume mounting
-if [ ! -f ./config/matrix/element-config.json ]; then
-    echo "Initializing Matrix Element configuration..."
-    cat <<EOF > ./config/matrix/element-config.json
+# 4. Generate Synapse secrets if not already customized
+if grep -q "CHANGE_ME" ./config/matrix/homeserver.yaml 2>/dev/null; then
+    echo "Generating random secrets for Matrix/Synapse..."
+    REG_SECRET=$(openssl rand -hex 32)
+    MAC_SECRET=$(openssl rand -hex 32)
+    FORM_SECRET=$(openssl rand -hex 32)
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "s|homeforge_default_registration_secret_CHANGE_ME|$REG_SECRET|" ./config/matrix/homeserver.yaml
+        sed -i '' "s|homeforge_default_macaroon_CHANGE_ME|$MAC_SECRET|" ./config/matrix/homeserver.yaml
+        sed -i '' "s|homeforge_default_form_secret_CHANGE_ME|$FORM_SECRET|" ./config/matrix/homeserver.yaml
+    else
+        sed -i "s|homeforge_default_registration_secret_CHANGE_ME|$REG_SECRET|" ./config/matrix/homeserver.yaml
+        sed -i "s|homeforge_default_macaroon_CHANGE_ME|$MAC_SECRET|" ./config/matrix/homeserver.yaml
+        sed -i "s|homeforge_default_form_secret_CHANGE_ME|$FORM_SECRET|" ./config/matrix/homeserver.yaml
+    fi
+fi
+
+# Sync Matrix DB password from .env to homeserver.yaml
+if [ -f .env ]; then
+    MATRIX_PW=$(grep MATRIX_DB_PASSWORD .env | cut -d'=' -f2)
+    if [ -n "$MATRIX_PW" ] && grep -q "password: change_me_synapse_password" ./config/matrix/homeserver.yaml 2>/dev/null; then
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "s|password: change_me_synapse_password|password: $MATRIX_PW|" ./config/matrix/homeserver.yaml
+        else
+            sed -i "s|password: change_me_synapse_password|password: $MATRIX_PW|" ./config/matrix/homeserver.yaml
+        fi
+    fi
+fi
+
+# 5. Initialize Matrix Element configuration
+# Use HOMEFORGE_LAN_IP from .env if set, otherwise fall back to localhost
+ELEMENT_HOST="localhost"
+if [ -f .env ]; then
+    LAN_IP=$(grep HOMEFORGE_LAN_IP .env | cut -d'=' -f2)
+    if [ -n "$LAN_IP" ]; then
+        ELEMENT_HOST="$LAN_IP"
+    fi
+fi
+echo "Initializing Matrix Element configuration (homeserver: $ELEMENT_HOST)..."
+cat <<EOF > ./config/matrix/element-config.json
 {
     "default_server_config": {
         "m.homeserver": {
-            "base_url": "http://localhost:8008",
+            "base_url": "http://$ELEMENT_HOST:8008",
             "server_name": "localhost"
         },
         "m.identity_server": {
@@ -77,7 +112,6 @@ if [ ! -f ./config/matrix/element-config.json ]; then
     "default_theme": "dark"
 }
 EOF
-fi
 
 # 5. Ensure hook scripts are executable
 # Git does not reliably preserve the executable bit on all platforms.
