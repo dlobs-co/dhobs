@@ -137,6 +137,34 @@ chmod 666 data/matrix/synapse/homeserver.log > /dev/null 2>&1
 echo "📦 Building and Starting Docker containers..."
 docker compose up -d --build
 
+# Inject ollama alias into Theia so 'ollama' works natively in the dashboard terminal
+echo "🤖 Configuring ollama alias in Theia..."
+docker exec project-s-theia bash -c \
+  "grep -q 'alias ollama' /root/.bashrc 2>/dev/null || echo \"alias ollama='docker exec -it project-s-ollama ollama'\" >> /root/.bashrc" \
+  2>/dev/null || echo "   ⚠️  Theia not ready yet — alias will be added on next boom.sh run."
+
+# Auto-build Ollama Modelfiles from config/ollama/
+if ls ./config/ollama/*.Modelfile 1>/dev/null 2>&1; then
+    echo "🧠 Building Ollama Modelfiles..."
+    # Wait briefly for Ollama to be ready
+    OLLAMA_RETRIES=0
+    until docker exec project-s-ollama ollama list &>/dev/null || [ "$OLLAMA_RETRIES" -ge 15 ]; do
+        OLLAMA_RETRIES=$((OLLAMA_RETRIES + 1))
+        printf '.'
+        sleep 2
+    done
+    echo ""
+    for mf in ./config/ollama/*.Modelfile; do
+        model_name=$(basename "$mf" .Modelfile)
+        echo "   Building: $model_name"
+        docker exec project-s-ollama ollama create "$model_name" -f "/modelfiles/$(basename "$mf")" \
+            && echo "   ✅ $model_name built" \
+            || echo "   ⚠️  Failed to build $model_name — base model may not be pulled yet. Run: docker exec project-s-ollama ollama create $model_name -f /modelfiles/$(basename "$mf")"
+    done
+else
+    echo "ℹ️  No Modelfiles found in config/ollama/ — skipping."
+fi
+
 # 4. Wait for Dashboard (with timeout)
 echo "⏳ Waiting for dashboard to be ready..."
 RETRIES=0
