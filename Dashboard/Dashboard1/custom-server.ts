@@ -1,11 +1,34 @@
 // Standalone WebSocket terminal server — runs alongside Next.js standalone (server.js).
 // No Next.js import: avoids webpack-lib MODULE_NOT_FOUND in standalone mode.
-import { createServer } from 'http'
+import { createServer, get as httpGet } from 'http'
 import { WebSocketServer, WebSocket } from 'ws'
 import * as pty from 'node-pty'
 
 const WS_PORT = parseInt(process.env.WS_PORT || '3070', 10)
 const hostname = '0.0.0.0'
+
+/** Check via Docker socket HTTP API — avoids docker CLI permission issues. */
+function isTheiaRunning(): Promise<boolean> {
+  return new Promise((resolve) => {
+    const req = httpGet({
+      socketPath: '/var/run/docker.sock',
+      path: '/containers/project-s-theia/json',
+    }, (res) => {
+      let data = ''
+      res.on('data', (chunk) => { data += chunk })
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data)
+          resolve(json?.State?.Running === true)
+        } catch {
+          resolve(false)
+        }
+      })
+    })
+    req.on('error', () => resolve(false))
+    req.setTimeout(2000, () => { req.destroy(); resolve(false) })
+  })
+}
 
 const server = createServer((_req, res) => {
   res.writeHead(200)
@@ -14,16 +37,25 @@ const server = createServer((_req, res) => {
 
 const wss = new WebSocketServer({ server })
 
-wss.on('connection', (ws: WebSocket) => {
+wss.on('connection', async (ws: WebSocket) => {
   let shell: pty.IPty | null = null
 
+  const useTheia = await isTheiaRunning()
+  const [cmd, args] = useTheia
+    ? ['docker', ['exec', '-it', '-w', '/home/project/workspace', 'project-s-theia', '/bin/bash']]
+    : ['/bin/bash', []]
+
+  if (useTheia) {
+    ws.send('\x1b[2m[connected to theia]\x1b[0m\r\n')
+  }
+
   try {
-    shell = pty.spawn('/bin/bash', [], {
+    shell = pty.spawn(cmd, args, {
       name: 'xterm-256color',
       cols: 80,
       rows: 24,
       cwd: process.env.HOME || '/root',
-      env: process.env as Record<string, string>,
+      env: { ...process.env, TERM: 'xterm-256color' } as Record<string, string>,
     })
   } catch (err) {
     ws.send('\r\n\x1b[31mFailed to spawn shell: ' + String(err) + '\x1b[0m\r\n')
