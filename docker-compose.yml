@@ -1,6 +1,6 @@
 services:
   jellyfin:
-    image: jellyfin/jellyfin:10.10.6
+    image: jellyfin/jellyfin:10.10
     container_name: project-s-jellyfin
     ports:
       - '8096:8096'
@@ -25,6 +25,7 @@ services:
       context: ./Dashboard/Dashboard1
       dockerfile: Dockerfile
     container_name: project-s-dashboard
+    user: root
     ports:
       - '3069:3069'
       - '3070:3070'
@@ -63,7 +64,7 @@ services:
           memory: 512m
 
   nextcloud:
-    image: nextcloud:30
+    image: nextcloud:33
     container_name: project-s-nextcloud
     restart: always
     ports:
@@ -166,7 +167,7 @@ services:
       start_period: 30s
 
   synapse-db:
-    image: postgres:16-alpine
+    image: postgres:15-alpine
     container_name: project-s-matrix-db
     environment:
       - POSTGRES_USER=${MATRIX_DB_USER}
@@ -226,6 +227,26 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+
+  ollama:
+    image: ollama/ollama:0.6.5
+    container_name: project-s-ollama
+    ports:
+      - '11434:11434'
+    volumes:
+      - ./data/ollama:/root/.ollama
+      - ./data/workspace:/workspace
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   kiwix:
     image: ghcr.io/kiwix/kiwix-serve:3.7.0
