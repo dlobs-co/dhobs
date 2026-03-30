@@ -1,24 +1,33 @@
 // Standalone WebSocket terminal server — runs alongside Next.js standalone (server.js).
 // No Next.js import: avoids webpack-lib MODULE_NOT_FOUND in standalone mode.
-import { createServer } from 'http'
+import { createServer, get as httpGet } from 'http'
 import { WebSocketServer, WebSocket } from 'ws'
-import { execFileSync } from 'child_process'
 import * as pty from 'node-pty'
 
 const WS_PORT = parseInt(process.env.WS_PORT || '3070', 10)
 const hostname = '0.0.0.0'
 
-/** Synchronous check — returns true if project-s-theia is running. */
-function isTheiaRunning(): boolean {
-  try {
-    const out = execFileSync('docker', ['inspect', '--format', '{{.State.Running}}', 'project-s-theia'], {
-      encoding: 'utf8',
-      timeout: 2000,
+/** Check via Docker socket HTTP API — avoids docker CLI permission issues. */
+function isTheiaRunning(): Promise<boolean> {
+  return new Promise((resolve) => {
+    const req = httpGet({
+      socketPath: '/var/run/docker.sock',
+      path: '/containers/project-s-theia/json',
+    }, (res) => {
+      let data = ''
+      res.on('data', (chunk) => { data += chunk })
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data)
+          resolve(json?.State?.Running === true)
+        } catch {
+          resolve(false)
+        }
+      })
     })
-    return out.trim() === 'true'
-  } catch {
-    return false
-  }
+    req.on('error', () => resolve(false))
+    req.setTimeout(2000, () => { req.destroy(); resolve(false) })
+  })
 }
 
 const server = createServer((_req, res) => {
@@ -28,10 +37,10 @@ const server = createServer((_req, res) => {
 
 const wss = new WebSocketServer({ server })
 
-wss.on('connection', (ws: WebSocket) => {
+wss.on('connection', async (ws: WebSocket) => {
   let shell: pty.IPty | null = null
 
-  const useTheia = isTheiaRunning()
+  const useTheia = await isTheiaRunning()
   const [cmd, args] = useTheia
     ? ['docker', ['exec', '-i', 'project-s-theia', '/bin/bash']]
     : ['/bin/bash', []]

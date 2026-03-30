@@ -25,6 +25,7 @@ services:
       context: ./Dashboard/Dashboard1
       dockerfile: Dockerfile
     container_name: project-s-dashboard
+    user: root
     ports:
       - '3069:3069'
       - '3070:3070'
