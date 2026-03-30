@@ -42,7 +42,7 @@ wss.on('connection', async (ws: WebSocket) => {
 
   const useTheia = await isTheiaRunning()
   const [cmd, args] = useTheia
-    ? ['docker', ['exec', '-i', 'project-s-theia', '/bin/bash', '-c', 'cd /home/project/workspace 2>/dev/null; exec /bin/bash -i']]
+    ? ['docker', ['exec', '-it', '-w', '/home/project/workspace', 'project-s-theia', '/bin/bash']]
     : ['/bin/bash', []]
 
   if (useTheia) {
