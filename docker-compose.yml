@@ -243,7 +243,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512m
+          memory: 2g
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
