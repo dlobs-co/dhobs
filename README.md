@@ -21,6 +21,7 @@ chmod +x boom.sh
 
 ### Option B: The "Install" Script (Linux / First-Time Setup)
 ```bash
+cp .env.example .env
 chmod +x install.sh
 ./install.sh
 ```
