@@ -46,7 +46,7 @@ export function SystemChart({ data }: SystemChartProps) {
           <Activity className="w-3.5 h-3.5 text-[#d4e157] shrink-0" />
           <span className="text-[10px] font-black uppercase tracking-widest opacity-40 text-foreground">System Performance</span>
         </div>
-        
+
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setIsOpen(!isOpen)}
@@ -55,16 +55,15 @@ export function SystemChart({ data }: SystemChartProps) {
             {currentLabel}
             <ChevronDown className={`w-2.5 h-2.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
           </button>
-          
+
           {isOpen && (
             <div className="absolute right-0 top-full mt-1 bg-card border border-border rounded-lg shadow-xl z-50 overflow-hidden min-w-[120px]">
               {metricOptions.map((option) => (
                 <button
                   key={option.key}
                   onClick={() => { setFilter(option.key); setIsOpen(false) }}
-                  className={`w-full text-left px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider transition-all hover:bg-white/5 ${
-                    filter === option.key ? 'text-foreground bg-white/5' : 'text-foreground/50'
-                  }`}
+                  className={`w-full text-left px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider transition-all hover:bg-white/5 ${filter === option.key ? 'text-foreground bg-white/5' : 'text-foreground/50'
+                    }`}
                 >
                   {option.key !== "all" && (
                     <span
@@ -187,9 +186,8 @@ export function SystemChart({ data }: SystemChartProps) {
           <button
             key={item.key}
             onClick={() => setFilter(prev => prev === item.key ? "all" : item.key)}
-            className={`flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider transition-all ${
-              filter === "all" || filter === item.key ? 'opacity-100' : 'opacity-30'
-            }`}
+            className={`flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider transition-all ${filter === "all" || filter === item.key ? 'opacity-100' : 'opacity-30'
+              }`}
           >
             <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
             <span className="text-foreground">{item.label}</span>
