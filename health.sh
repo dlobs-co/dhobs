@@ -23,7 +23,7 @@ check_service "Theia IDE" "http://localhost:3030"
 check_service "Matrix" "http://localhost:8008"
 check_service "Element" "http://localhost:8082"
 check_service "Vaultwarden" "http://localhost:8083"
-check_service "Kiwix" "http://localhost:8084"
+check_service "Kiwix" "http://localhost:8087"
 
 echo ""
 echo "Docker Containers:"
