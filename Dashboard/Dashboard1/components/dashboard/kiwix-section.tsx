@@ -30,7 +30,7 @@ export function KiwixSection({ isWindow }: KiwixSectionProps) {
   const [restarting, setRestarting] = useState(false)
 
   useEffect(() => {
-    setServiceUrl(`http://${window.location.hostname}:8084`)
+    setServiceUrl(`http://${window.location.hostname}:8087`)
     setManagerUrl(`http://${window.location.hostname}:8086`)
   }, [])
 
@@ -166,7 +166,7 @@ export function KiwixSection({ isWindow }: KiwixSectionProps) {
       <div className="flex-1 relative overflow-hidden">
         {tab === 'browse' && (
           <>
-            {serviceUrl && zimFiles.length > 0 && (
+            {serviceUrl && (
               <iframe
                 src={serviceUrl}
                 className="w-full h-full border-0"

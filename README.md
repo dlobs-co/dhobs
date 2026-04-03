@@ -88,7 +88,7 @@ The following services are currently functional and accessible via their own por
 | Theia IDE | Integrated development environment | `:3030` |
 | Matrix (Element) | Secure, encrypted communications | `:8082` |
 | Vaultwarden | Enterprise-grade password management | `:8083` |
-| Kiwix | Offline knowledge base | `:8084` |
+| Kiwix | Offline knowledge base | `:8087` |
 
 ---
 

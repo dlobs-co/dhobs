@@ -1,90 +1,100 @@
-# Project S — Kiwix Installation and Workflow Log
+# Project S — Kiwix Architecture & Workflow Log
 
-This document details the complete lifecycle and operational workflow of the **Kiwix** offline knowledge base within the Project S environment. It covers everything from the initial setup via `install.sh` to the container deployment and the Dashboard UI integration.
+> [!IMPORTANT]
+> **ARCHITECTURAL NOTICE: THE KIWIX FRONTEND SHELL**
+> The intended and ONLY supported way to access Kiwix in Project S is via the dedicated Next.js app page at **`http://localhost:3069/kiwix`**. 
+> 
+> **Do NOT access the raw service port (`localhost:8087`) directly.** 
+> The raw `kiwix-serve` engine automatically registers a Kiwix JS PWA ServiceWorker. If accessed directly in a browser, this ServiceWorker aggressively caches and hijacks future requests, breaking the dashboard integration and causing blank screens. The `/kiwix` Next.js page acts as a protective "shell," wrapping the raw services in controlled iframes to provide a seamless, native-feeling app experience without PWA interference.
+
+This document details the complete lifecycle and operational workflow of the **Kiwix** offline knowledge base within the Project S environment. 
 
 ---
 
-## 1. Directory Initialization (`install.sh` / `boom.sh`)
+## 1. Directory Initialization
 
-When the user runs the initial setup scripts (`./install.sh` or `./boom.sh`), the system prepares the host environment for Kiwix:
+The system utilizes persistent local storage for ZIM files:
 
 ```bash
-# Extract from install.sh
-echo "Creating data and configuration directories..."
-...
 mkdir -p ./data/kiwix
 ```
 
 **Purpose:**
-This creates a persistent local directory (`./data/kiwix`) on the host machine. This directory serves as the centralized storage location where the user will drop their downloaded `.zim` files (compressed archives of websites like Wikipedia, StackOverflow, etc.).
+This creates a persistent local directory (`./data/kiwix`) on the host machine. This directory serves as the centralized storage location where both the backend reader and the upload manager interact with `.zim` files.
 
 ---
 
 ## 2. Docker Deployment (`docker-compose.yml`)
 
-The core of the Kiwix service is managed via Docker Compose. The configuration is defined as follows:
+The Kiwix ecosystem in Project S requires two separate Docker services working in tandem, mounted to the same data volume:
 
+### A. The Reader (`kiwix-serve`)
 ```yaml
   kiwix:
     image: ghcr.io/kiwix/kiwix-serve:3.7.0
     container_name: project-s-kiwix-reader
     ports:
-      - '8084:80'
+      - '8087:8080'
     volumes:
       - ./data/kiwix:/data
-    command: sh -c "kiwix-serve --port=80 *.zim || (echo 'No ZIM files found. Please add .zim files to ./data/kiwix' && sleep infinity)"
-    restart: unless-stopped
+    entrypoint: ["sh", "-c"]
+    command: >
+      "rm -f /data/library.xml &&
+      if ls /data/*.zim >/dev/null 2>&1; then
+        kiwix-manage /data/library.xml add /data/*.zim &&
+        kiwix-serve --port=8080 --library /data/library.xml;
+      else
+        echo 'No ZIM files found.' && sleep infinity;
+      fi"
 ```
+* **Port:** 8087 (Internal raw reader).
+* **Logic:** Automatically rebuilds the `library.xml` cache on startup to ensure new files are recognized, then serves the content.
 
-**Workflow Mechanics:**
-1. **Image:** Uses the official `ghcr.io/kiwix/kiwix-serve` image, ensuring a lightweight and performant web server specifically designed for serving ZIM files.
-2. **Volume Mapping:** The host directory `./data/kiwix` is mounted to `/data` inside the container. This grants the container read access to the ZIM files downloaded by the user.
-3. **Port Mapping:** The internal port `80` of the container is exposed to port `8084` on the host machine.
-4. **Resilient Command Execution:** 
-   - The command attempts to start `kiwix-serve`, instructing it to serve all `*.zim` files found in the working directory.
-   - **Fail-safe:** If no `.zim` files are found (which is true on a fresh install), `kiwix-serve` would normally crash and cause the container to enter a restart loop. The `|| (echo ... && sleep infinity)` logic prevents this. It logs a helpful message and keeps the container alive in an idle state until the user adds `.zim` files and restarts the container.
+### B. The Manager (`filebrowser`)
+```yaml
+  kiwix-manager:
+    image: filebrowser/filebrowser:v2.31.2
+    container_name: project-s-kiwix-manager
+    ports:
+      - '8086:80'
+    volumes:
+      - ./data/kiwix:/srv
+    command: ["--noauth", "--database", "/database.db", "--root", "/srv"]
+```
+* **Port:** 8086 (Internal upload manager).
+* **Logic:** Provides a lightweight, web-based file manager allowing the user to upload/delete `.zim` files directly from the UI without needing SSH/SFTP access. Authentication is bypassed (`--noauth`) because the dashboard handles access control.
 
 ---
 
-## 3. Dashboard Integration & API
+## 3. The App Interface (`/kiwix`)
 
-The user interacts with Kiwix through the unified Next.js dashboard, creating an "OS-like" windowed experience.
+Instead of embedding Kiwix inside a small dashboard widget, Project S treats Kiwix as a first-class, standalone application encapsulated within the Next.js framework.
 
-### A. Backend API (`Dashboard/Dashboard1/app/api/kiwix/route.ts`)
-The Next.js backend provides an endpoint to inspect the available ZIM files:
-- It reads the mounted directory (`/data/kiwix` as accessed by the Dashboard container).
-- It filters for files ending in `.zim`.
-- It calculates the file sizes and returns a JSON array of available ZIM files.
+### The Shell (`app/kiwix/page.tsx` & `kiwix-section.tsx`)
+When the user clicks the "Kiwix (Embedded)" card on the main dashboard, they are navigated to `/kiwix`. This page:
+1. Prevents cross-origin/PWA caching issues.
+2. Provides a customized Top Bar with a "Back to Dashboard" button.
+3. Offers a tabbed interface:
+   - **Browse Tab:** Iframes `http://localhost:8087` (The Kiwix Reader).
+   - **Manage Tab:** Iframes `http://localhost:8086` (The Filebrowser Manager).
 
-### B. Frontend UI (`Dashboard/Dashboard1/components/dashboard/kiwix-section.tsx`)
-The frontend component creates a seamless user experience based on the API response:
-1. **Initial Check:** It fetches `/api/kiwix` to see if any ZIM files exist.
-2. **Empty State:** If no files are found (array is empty), it prevents the iframe from loading. Instead, it displays a stylized, user-friendly prompt instructing the user to:
-   - Visit `library.kiwix.org`
-   - Download `.zim` files.
-   - Place them in `./data/kiwix/`
-   - Restart the Kiwix container.
-3. **Active State:** If ZIM files are detected, it dynamically renders an `iframe` pointing to `http://<host>:8084`. This seamlessly embeds the native Kiwix web UI directly into the Project S dashboard, allowing users to browse their offline knowledge base without leaving the ecosystem.
+This dual-iframe approach creates the illusion of a single, unified "Kiwix App" that handles both reading and file management seamlessly.
 
 ---
 
 ## 4. Health Monitoring (`health.sh`)
 
-The system's health script actively monitors the Kiwix service by checking the exposed HTTP endpoint:
+The system's health script actively monitors the internal port:
 
 ```bash
-# Extract from health.sh
-check_service "Kiwix" "http://localhost:8084"
+check_service "Kiwix" "http://localhost:8087"
 ```
-This ensures the user is aware of the service status during routine system diagnostics.
 
 ---
 
 ## Summary of the User Journey
 
-1. **Install:** User runs `./install.sh`. The `./data/kiwix` folder is created.
-2. **Start:** User runs Docker Compose. The Kiwix container starts up but idles because there are no files.
-3. **Discover:** User opens the Dashboard, clicks the Kiwix icon, and sees the "Library is empty" instruction screen.
-4. **Action:** User downloads a `.zim` file (e.g., Wikipedia) and moves it to `./data/kiwix`.
-5. **Reload:** User restarts the Kiwix container (`docker restart project-s-kiwix-reader`).
-6. **Consume:** User returns to the Dashboard. The API detects the file, the iframe loads, and the offline Wikipedia is fully accessible on port 8084.
+1. **Access:** User opens Dashboard and clicks "Kiwix". They are routed to `localhost:3069/kiwix`.
+2. **Upload:** User clicks the **Manage** tab (Filebrowser) and drags-and-drops a `.zim` file into the UI.
+3. **Refresh:** User clicks the **Refresh Library** button in the top right. This triggers a backend API route (`/api/docker/restart?container=project-s-kiwix-reader`), which restarts the reader. The reader rebuilds `library.xml` on boot.
+4. **Browse:** User swaps back to the **Browse** tab and the new `.zim` file is actively loaded and ready to read.
