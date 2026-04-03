@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { useTheme } from "@/components/theme-provider"
 import {
   Play,
@@ -19,7 +20,7 @@ const SERVICE_PORTS = [
   { name: "Theia IDE", port: 3030, icon: Code },
   { name: "Matrix", port: 8082, icon: MessageSquare },
   { name: "Vaultwarden", port: 8083, icon: Key },
-  { name: "Kiwix", port: 8084, icon: Book },
+  { name: "Kiwix", port: 8087, icon: Book, route: "/kiwix" },
   { name: "Ollama", port: 8085, icon: BrainCircuit },
 ]
 
@@ -64,6 +65,7 @@ interface WelcomeSectionProps {
 export function WelcomeSection({ onNavigate }: WelcomeSectionProps) {
   const { colorTheme } = useTheme()
   const [hostname, setHostname] = useState("")
+  const router = useRouter()
 
   useEffect(() => {
     setHostname(window.location.hostname)
@@ -75,6 +77,7 @@ export function WelcomeSection({ onNavigate }: WelcomeSectionProps) {
         name: svc.name,
         url: hostname ? `http://${hostname}:${svc.port}` : "",
         icon: svc.icon,
+        route: 'route' in svc ? (svc as { route: string }).route : undefined,
       })),
     [hostname]
   )
@@ -106,28 +109,21 @@ export function WelcomeSection({ onNavigate }: WelcomeSectionProps) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {applications.map((app, index) => {
               const Icon = app.icon
-              
-              return (
-                <a
-                  key={app.name}
-                  href={app.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={cn(
-                    "group flex items-center gap-3 p-3 rounded-xl transition-all active:scale-[0.98] text-left w-full border shadow-sm",
-                    "hover:shadow-md transition-all duration-300 hover:bg-white/[0.04]"
-                  )}
-                  style={{
-                    animationDelay: `${index * 30}ms`,
-                    backgroundColor: colorTheme.card,
-                    borderColor: colorTheme.border
-                  }}
-                >
+
+              const cardClasses = cn(
+                "group flex items-center gap-3 p-3 rounded-xl transition-all active:scale-[0.98] text-left w-full border shadow-sm",
+                "hover:shadow-md transition-all duration-300 hover:bg-white/[0.04]"
+              )
+              const cardStyle = {
+                animationDelay: `${index * 30}ms`,
+                backgroundColor: colorTheme.card,
+                borderColor: colorTheme.border,
+              }
+              const cardContent = (
+                <>
                   <div 
                     className="flex h-10 w-10 items-center justify-center rounded-lg transition-colors"
-                    style={{ 
-                      backgroundColor: `${colorTheme.accent}15`,
-                    }}
+                    style={{ backgroundColor: `${colorTheme.accent}15` }}
                   >
                     <Icon 
                       className="h-5 w-5 transition-colors" 
@@ -146,6 +142,32 @@ export function WelcomeSection({ onNavigate }: WelcomeSectionProps) {
                       External
                     </p>
                   </div>
+                </>
+              )
+
+              if (app.route) {
+                return (
+                  <button
+                    key={app.name}
+                    onClick={() => router.push(app.route!)}
+                    className={cardClasses}
+                    style={cardStyle}
+                  >
+                    {cardContent}
+                  </button>
+                )
+              }
+
+              return (
+                <a
+                  key={app.name}
+                  href={app.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cardClasses}
+                  style={cardStyle}
+                >
+                  {cardContent}
                 </a>
               )
             })}

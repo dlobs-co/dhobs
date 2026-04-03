@@ -276,7 +276,7 @@ services:
     image: ghcr.io/kiwix/kiwix-serve:3.7.0
     container_name: project-s-kiwix-reader
     ports:
-      - '8084:8080'
+      - '8087:8080'
     volumes:
       - ./data/kiwix:/data
     entrypoint: ["sh", "-c"]
