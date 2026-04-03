@@ -36,7 +36,7 @@ Alternatives considered and rejected:
 ## 3. Architecture
 
 ```
-Browser → http://<host>:8087 → project-s-openvpn-ui (GoLang/Beego, port 8080 inside)
+Browser → http://<host>:8090 → project-s-openvpn-ui (GoLang/Beego, port 8080 inside)
                                           │
                           ┌───────────────┴───────────────┐
                           │ shared volumes (./data/vpn/)  │
@@ -57,7 +57,7 @@ Browser → http://<host>:8087 → project-s-openvpn-ui (GoLang/Beego, port 8080
 
 | Port | Protocol | Purpose | Existing conflict? |
 |---|---|---|---|
-| **8087** | TCP | OpenVPN UI web interface | No — next free after 8086 |
+| **8090** | TCP | OpenVPN UI web interface | No — 8090 taken by Kiwix (PR #78) |
 | **1194** | UDP | OpenVPN VPN tunnel traffic | No — uncontested |
 | 2080 | TCP | OpenVPN management socket | Internal only, NOT exposed to host |
 
@@ -89,7 +89,7 @@ Add to `docker-compose.yml`:
     depends_on:
       - openvpn
     ports:
-      - "8087:8080"
+      - "8090:8080"
     environment:
       - OPENVPN_ADMIN_USERNAME=${VPN_ADMIN_USERNAME:-admin}
       - OPENVPN_ADMIN_PASSWORD=${VPN_ADMIN_PASSWORD}
@@ -191,10 +191,10 @@ In `Dashboard/Dashboard1/components/dashboard/welcome-section.tsx`, add to the `
 ```typescript
 import { Shield } from "lucide-react"  // add to existing import
 
-{ name: "VPN Manager", port: 8087, icon: Shield },
+{ name: "VPN Manager", port: 8090, icon: Shield },
 ```
 
-This gives the VPN a tile identical in behaviour to Jellyfin, Nextcloud, etc. — click opens `http://${hostname}:8087` in a new tab.
+This gives the VPN a tile identical in behaviour to Jellyfin, Nextcloud, etc. — click opens `http://${hostname}:8090` in a new tab.
 
 ---
 
@@ -203,7 +203,7 @@ This gives the VPN a tile identical in behaviour to Jellyfin, Nextcloud, etc. �
 After `./boom.sh` or `./install.sh` runs for the first time with VPN enabled:
 
 1. Containers start. openvpn-ui initialises the SQLite DB.
-2. Open `http://<host>:8087` — log in with `VPN_ADMIN_USERNAME` / `VPN_ADMIN_PASSWORD`.
+2. Open `http://<host>:8090` — log in with `VPN_ADMIN_USERNAME` / `VPN_ADMIN_PASSWORD`.
 3. Navigate to **EasyRSA** → **Init PKI** → **Build CA** → **Generate DH params** → **Generate TA key**.
 4. Create a server certificate: **Certificates** → **New server cert**.
 5. Restart the openvpn container from the UI: **Server** → **Restart**.
@@ -218,7 +218,7 @@ For external (internet) access: forward port **1194 UDP** on your router to the 
 
 | Limitation | Detail | Future fix |
 |---|---|---|
-| No built-in HTTPS | UI serves plain HTTP on 8087 | Add reverse proxy (Nginx/Caddy) with TLS |
+| No built-in HTTPS | UI serves plain HTTP on 8090 | Add reverse proxy (Nginx/Caddy) with TLS |
 | No subpath support | Cannot be served at `/vpn`, must use port or subdomain | Upstream issue #151 — track for fix |
 | Privileged containers | Both containers run `privileged: true` | Accepted for OpenVPN — iptables required |
 | Docker socket in UI | UI can inspect/control all host containers | Read-only mount mitigates; LAN-only for MVP |

@@ -301,3 +301,33 @@ services:
       - ./data/filebrowser/database.db:/database.db
     command: ["--database", "/database.db", "--noauth", "--root", "/srv"]
     restart: unless-stopped
+
+  openvpn:
+    image: d3vilh/openvpn-server:latest
+    container_name: project-s-openvpn
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - '1194:1194/udp'
+    volumes:
+      - ./data/vpn:/etc/openvpn
+    restart: unless-stopped
+
+  openvpn-ui:
+    image: d3vilh/openvpn-ui:latest
+    container_name: project-s-openvpn-ui
+    privileged: true
+    depends_on:
+      - openvpn
+    ports:
+      - '8090:8080'
+    environment:
+      - OPENVPN_ADMIN_USERNAME=${VPN_ADMIN_USERNAME:-admin}
+      - OPENVPN_ADMIN_PASSWORD=${VPN_ADMIN_PASSWORD}
+    volumes:
+      - ./data/vpn:/etc/openvpn
+      - ./data/vpn/db:/opt/openvpn-ui/db
+      - ./data/vpn/pki:/usr/share/easy-rsa/pki
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
