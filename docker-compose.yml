@@ -3,7 +3,7 @@ services:
     image: jellyfin/jellyfin:10.10.6
     container_name: project-s-jellyfin
     ports:
-      - '8096:8096'
+      - '${PORT_JELLYFIN:-8096}:8096'
     volumes:
       - ./data/jellyfin/config:/config
       - ./data/jellyfin/cache:/cache
@@ -27,20 +27,20 @@ services:
     container_name: project-s-dashboard
     user: root
     ports:
-      - '3069:3069'
-      - '3070:3070'
+      - '${PORT_DASHBOARD:-3069}:${PORT_DASHBOARD:-3069}'
+      - '${PORT_DASHBOARD_WS:-3070}:${PORT_DASHBOARD_WS:-3070}'
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./data:/data:ro
     environment:
-      - PORT=3069
-      - WS_PORT=3070
+      - PORT=${PORT_DASHBOARD:-3069}
+      - WS_PORT=${PORT_DASHBOARD_WS:-3070}
     restart: 'unless-stopped'
     depends_on:
       - jellyfin
       - nextcloud
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:3069/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:'+process.env.PORT+'/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))\""]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -68,7 +68,7 @@ services:
     container_name: project-s-nextcloud
     restart: always
     ports:
-      - '8081:80'
+      - '${PORT_NEXTCLOUD:-8081}:80'
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -82,7 +82,7 @@ services:
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_HOST=db
       - NEXTCLOUD_TRUSTED_DOMAINS=localhost 127.0.0.1 ${HOMEFORGE_LAN_IP:-}
-      - OVERWRITEHOST=${HOMEFORGE_LAN_IP:-localhost}:8081
+      - OVERWRITEHOST=${HOMEFORGE_LAN_IP:-localhost}:${PORT_NEXTCLOUD:-8081}
       - OVERWRITEPROTOCOL=http
       - NEXTCLOUD_DATA_DIR=/var/www/nextcloud_data
       - NEXTCLOUD_INIT_HTACCESS=true
@@ -110,7 +110,7 @@ services:
     container_name: project-s-collabora
     restart: unless-stopped
     ports:
-      - '9980:9980'
+      - '${PORT_COLLABORA:-9980}:9980'
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -119,7 +119,7 @@ services:
       # Only the Docker-internal hostname needed — Collabora callbacks use
       # wopi_callback_url (set in Nextcloud via occ) instead of the browser's WOPISrc.
       - aliasgroup1=http://nextcloud:80
-      - server_name=${HOMEFORGE_LAN_IP:-localhost}:9980
+      - server_name=${HOMEFORGE_LAN_IP:-localhost}:${PORT_COLLABORA:-9980}
       - dictionaries=en_US
       - username=${COLLABORA_USERNAME}
       - password=${COLLABORA_PASSWORD}
@@ -148,7 +148,7 @@ services:
     user: root
     privileged: true
     ports:
-      - '3030:3000'
+      - '${PORT_THEIA:-3030}:3000'
     volumes:
       - ./data/workspace:/home/project/workspace
       - /var/run/docker.sock:/var/run/docker.sock
@@ -184,7 +184,7 @@ services:
     depends_on:
       - synapse-db
     ports:
-      - '8008:8008'
+      - '${PORT_MATRIX:-8008}:8008'
     volumes:
       - ./data/matrix/synapse:/data
       - ./config/matrix/homeserver.yaml:/data/homeserver.yaml:ro
@@ -205,7 +205,7 @@ services:
     image: vectorim/element-web:v1.11.90
     container_name: project-s-matrix-client
     ports:
-      - '8082:80'
+      - '${PORT_ELEMENT:-8082}:80'
     volumes:
       - ./config/matrix/element-config.json:/app/config.json:ro
     restart: unless-stopped
@@ -214,7 +214,7 @@ services:
     image: vaultwarden/server:1.32.7
     container_name: project-s-vaultwarden
     ports:
-      - '8083:80'
+      - '${PORT_VAULTWARDEN:-8083}:80'
     volumes:
       - ./data/vaultwarden:/data
     environment:
@@ -232,7 +232,7 @@ services:
     image: ghcr.io/open-webui/open-webui:0.6.5
     container_name: project-s-open-webui
     ports:
-      - '8085:8080'
+      - '${PORT_OPEN_WEBUI:-8085}:8080'
     volumes:
       - ./data/open-webui:/app/backend/data
     environment:
@@ -255,7 +255,7 @@ services:
     image: ollama/ollama:0.6.5
     container_name: project-s-ollama
     ports:
-      - '11434:11434'
+      - '${PORT_OLLAMA:-11434}:11434'
     volumes:
       - ./data/ollama:/root/.ollama
       - ./data/workspace:/workspace
@@ -266,17 +266,17 @@ services:
         limits:
           memory: 4g
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/"]
+      test: ["CMD", "ollama", "list"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 60s
 
   kiwix:
     image: ghcr.io/kiwix/kiwix-serve:3.7.0
     container_name: project-s-kiwix-reader
     ports:
-      - '8087:8080'
+      - '${PORT_KIWIX:-8087}:8080'
     volumes:
       - ./data/kiwix:/data
     entrypoint: ["sh", "-c"]
@@ -295,7 +295,7 @@ services:
     container_name: project-s-kiwix-manager
     user: "${UID:-1000}:${GID:-1000}"
     ports:
-      - '8086:80'
+      - '${PORT_KIWIX_MANAGER:-8086}:80'
     volumes:
       - ./data/kiwix:/srv
       - ./data/filebrowser/database.db:/database.db
@@ -309,7 +309,7 @@ services:
     cap_add:
       - NET_ADMIN
     ports:
-      - '1194:1194/udp'
+      - '${PORT_OPENVPN:-1194}:1194/udp'
     volumes:
       - ./data/vpn:/etc/openvpn
     restart: unless-stopped
@@ -321,7 +321,7 @@ services:
     depends_on:
       - openvpn
     ports:
-      - '8090:8080'
+      - '${PORT_OPENVPN_UI:-8090}:8080'
     environment:
       - OPENVPN_ADMIN_USERNAME=${VPN_ADMIN_USERNAME:-admin}
       - OPENVPN_ADMIN_PASSWORD=${VPN_ADMIN_PASSWORD}
