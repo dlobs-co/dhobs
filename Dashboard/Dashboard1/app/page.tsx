@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/dashboard/sidebar"
 import { WelcomeSection } from "@/components/dashboard/welcome-section"
 import { DashboardSection } from "@/components/dashboard/dashboard-section"
 import { MetricsSection } from "@/components/dashboard/metrics-section"
+import { OllamaSection } from "@/components/dashboard/ollama-section"
 import { TerminalPanel } from "@/components/dashboard/terminal-panel"
 import { useTheme } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
@@ -101,6 +102,14 @@ export default function HomePage() {
 
       <main className="relative z-10 h-full w-full">
         {/* HOME / METRICS VIEW (Static / Scrollable) */}
+        {/* OLLAMA SECTION */}
+        <div className={cn(
+          "h-full w-full transition-all duration-500",
+          currentSection === "ollama" ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none absolute inset-0"
+        )}>
+          <OllamaSection />
+        </div>
+
         <div className={cn(
           "h-full w-full transition-all duration-500",
           (currentSection === "home" || currentSection === "metrics") ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none absolute inset-0"

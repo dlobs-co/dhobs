@@ -10,6 +10,7 @@ import {
   X,
   TerminalSquare,
   Activity,
+  BrainCircuit,
   Check,
   type LucideIcon,
 } from "lucide-react"
@@ -78,11 +79,18 @@ export function Sidebar({
             onClick={() => onNavigate?.("home")}
             theme={colorTheme}
           />
-          <NavButton 
+          <NavButton
             icon={Activity}
             label="Metrics"
             active={activeSection === "metrics"}
             onClick={() => onNavigate?.("metrics")}
+            theme={colorTheme}
+          />
+          <NavButton
+            icon={BrainCircuit}
+            label="Ollama"
+            active={activeSection === "ollama"}
+            onClick={() => onNavigate?.("ollama")}
             theme={colorTheme}
           />
         </nav>

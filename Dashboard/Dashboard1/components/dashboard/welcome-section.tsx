@@ -22,7 +22,8 @@ const SERVICE_PORTS = [
   { name: "Matrix", port: 8082, icon: MessageSquare },
   { name: "Vaultwarden", port: 8083, icon: Key },
   { name: "Kiwix", port: 8087, icon: Book, route: "/kiwix" },
-  { name: "Ollama", port: 8085, icon: BrainCircuit },
+  { name: "Ollama", icon: BrainCircuit, section: "ollama" },
+  { name: "Open WebUI", port: 8085, icon: MessageSquare },
   { name: "VPN Manager", port: 8090, icon: Shield },
 ]
 
@@ -77,9 +78,10 @@ export function WelcomeSection({ onNavigate }: WelcomeSectionProps) {
     () =>
       SERVICE_PORTS.map((svc) => ({
         name: svc.name,
-        url: hostname ? `http://${hostname}:${svc.port}` : "",
+        url: 'port' in svc && hostname ? `http://${hostname}:${svc.port}` : "",
         icon: svc.icon,
         route: 'route' in svc ? (svc as { route: string }).route : undefined,
+        section: 'section' in svc ? (svc as { section: string }).section : undefined,
       })),
     [hostname]
   )
@@ -141,11 +143,24 @@ export function WelcomeSection({ onNavigate }: WelcomeSectionProps) {
                       {app.name}
                     </p>
                     <p className="text-[10px] truncate uppercase tracking-widest opacity-40" style={{ color: colorTheme.foreground }}>
-                      {app.route ? "Internal" : "External"}
+                      {app.section ? "Manager" : app.route ? "Internal" : "External"}
                     </p>
                   </div>
                 </>
               )
+
+              if (app.section) {
+                return (
+                  <button
+                    key={app.name}
+                    onClick={() => onNavigate?.(app.section!)}
+                    className={cardClasses}
+                    style={cardStyle}
+                  >
+                    {cardContent}
+                  </button>
+                )
+              }
 
               if (app.route) {
                 return (
