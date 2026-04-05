@@ -134,6 +134,28 @@ export function OllamaSection({ isWindow }: OllamaSectionProps) {
     return () => { abortRef.current?.abort() }
   }, [])
 
+  if (process.env.NEXT_PUBLIC_LANDING_MODE === 'true') {
+    return (
+      <section className="min-h-screen px-8 py-16 pl-24 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4 p-10 rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-xl text-center max-w-sm">
+          <BrainCircuit className="h-10 w-10" style={{ color: colorTheme.accent }} />
+          <h2 className="text-xl font-bold" style={{ color: colorTheme.foreground }}>
+            Ollama AI Manager
+          </h2>
+          <p className="text-sm" style={{ color: `${colorTheme.foreground}70` }}>
+            Pull and run local AI models privately. No data leaves your server.
+          </p>
+          <div
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold uppercase"
+            style={{ borderColor: `${colorTheme.accent}40`, color: colorTheme.accent }}
+          >
+            Available in your instance
+          </div>
+        </div>
+      </section>
+    )
+  }
+
   const handlePull = async () => {
     const name = pullInput.trim()
     if (!name || isPulling) return
