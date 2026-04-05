@@ -16,6 +16,10 @@ process.env.SESSION_SECRET = 'b'.repeat(64)
 process.env.WS_SECRET      = 'c'.repeat(64)
 process.env.DB_KEY         = 'd'.repeat(64)   // 32-byte test key as hex
 
+// ── Test credentials — set via env or .env.test (never hardcode in source) ───
+const TEST_ADMIN_USER = process.env.TEST_ADMIN_USER     ?? 'test_admin'
+const TEST_ADMIN_PASS = process.env.TEST_ADMIN_PASSWORD ?? 'Test@Admin!Secure99'
+
 import * as authLib from '@/lib/auth'
 import { storeEntropyKey } from '@/lib/crypto/keystore'
 import { randomKey } from '@/lib/crypto/entropy'
@@ -34,7 +38,7 @@ import { DELETE as userDelete, PUT as userPut } from '@/app/api/auth/users/[id]/
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const ADMIN_SESSION: SessionData = { userId: 1, username: 'admin', role: 'admin' }
+const ADMIN_SESSION: SessionData = { userId: 1, username: TEST_ADMIN_USER, role: 'admin' }
 
 /** Build a NextRequest with optional JSON body and session cookie. */
 async function makeReq(
@@ -101,7 +105,7 @@ describe('POST /api/auth/setup', () => {
     const req = await makeReq('/api/auth/setup', {
       method: 'POST',
       // 127 chars — one short of required 128
-      body: { entropyKey: 'a'.repeat(127), username: 'admin', password: 'SuperSecret123!' },
+      body: { entropyKey: 'a'.repeat(127), username: TEST_ADMIN_USER, password: TEST_ADMIN_PASS },
     })
     expect((await setupPost(req)).status).toBe(400)
   })
@@ -109,7 +113,7 @@ describe('POST /api/auth/setup', () => {
   it('accepts any valid 128-char hex entropy key and completes setup (200)', async () => {
     const req = await makeReq('/api/auth/setup', {
       method: 'POST',
-      body: { entropyKey: entropyHex, username: 'admin', password: 'SuperSecret123!' },
+      body: { entropyKey: entropyHex, username: TEST_ADMIN_USER, password: TEST_ADMIN_PASS },
     })
     const res  = await setupPost(req)
     const data = await res.json()
@@ -122,7 +126,7 @@ describe('POST /api/auth/setup', () => {
   it('returns 409 when called again after setup', async () => {
     const req = await makeReq('/api/auth/setup', {
       method: 'POST',
-      body: { entropyKey: entropyHex, username: 'admin2', password: 'SuperSecret123!' },
+      body: { entropyKey: entropyHex, username: TEST_ADMIN_USER + '2', password: TEST_ADMIN_PASS },
     })
     expect((await setupPost(req)).status).toBe(409)
   })
@@ -137,7 +141,7 @@ describe('POST /api/auth/login', () => {
   it('accepts correct credentials and sets cookie (200)', async () => {
     const req  = await makeReq('/api/auth/login', {
       method: 'POST',
-      body: { username: 'admin', password: 'SuperSecret123!' },
+      body: { username: TEST_ADMIN_USER, password: TEST_ADMIN_PASS },
     })
     const res  = await loginPost(req)
     const data = await res.json()
@@ -179,7 +183,7 @@ describe('GET /api/auth/me', () => {
   it('returns user info when authenticated (200)', async () => {
     stubSession(ADMIN_SESSION)
     const data = await (await meGet()).json()
-    expect(data.username).toBe('admin')
+    expect(data.username).toBe(TEST_ADMIN_USER)
     expect(data.role).toBe('admin')
     expect(data.password_hash).toBeUndefined()
   })
@@ -211,7 +215,7 @@ describe('GET /api/auth/users', () => {
     stubAdmin()
     const data = await (await usersGet()).json()
     expect(Array.isArray(data)).toBe(true)
-    expect(data.some((u: any) => u.username === 'admin')).toBe(true)
+    expect(data.some((u: any) => u.username === TEST_ADMIN_USER)).toBe(true)
     expect(data.every((u: any) => u.password_hash === undefined)).toBe(true)
   })
 })
@@ -221,7 +225,7 @@ describe('POST /api/auth/users', () => {
     stubAdmin()
     const req  = await makeReq('/api/auth/users', {
       method: 'POST',
-      body: { username: 'viewer1', password: 'ViewerPass123!', role: 'viewer' },
+      body: { username: 'test_viewer', password: process.env.TEST_VIEWER_PASSWORD ?? 'Test@Viewer!Secure99', role: 'viewer' },
     })
     const res  = await usersPost(req)
     const data = await res.json()
@@ -233,7 +237,7 @@ describe('POST /api/auth/users', () => {
     stubAdmin()
     const req = await makeReq('/api/auth/users', {
       method: 'POST',
-      body: { username: 'ADMIN', password: 'AnotherPass123!', role: 'viewer' },
+      body: { username: TEST_ADMIN_USER.toUpperCase(), password: process.env.TEST_VIEWER_PASSWORD ?? 'Test@Viewer!Secure99', role: 'viewer' },
     })
     expect((await usersPost(req)).status).toBe(409)
   })
@@ -251,7 +255,7 @@ describe('POST /api/auth/users', () => {
 describe('DELETE /api/auth/users/[id]', () => {
   it('deletes an existing user (200)', async () => {
     stubAdmin()
-    const viewer = listUsers().find(u => u.username === 'viewer1')!
+    const viewer = listUsers().find(u => u.username === 'test_viewer')!
     const req = await makeReq(`/api/auth/users/${viewer.id}`, { method: 'DELETE' })
     const res = await userDelete(req, { params: Promise.resolve({ id: String(viewer.id) }) })
     expect(res.status).toBe(200)
@@ -278,7 +282,7 @@ describe('PUT /api/auth/users/[id]', () => {
     stubAdmin()
     const createReq = await makeReq('/api/auth/users', {
       method: 'POST',
-      body: { username: 'toupdate', password: 'UpdatePass123!', role: 'viewer' },
+      body: { username: 'test_toupdate', password: process.env.TEST_VIEWER_PASSWORD ?? 'Test@Viewer!Secure99', role: 'viewer' },
     })
     const created = await (await usersPost(createReq)).json()
 
@@ -315,7 +319,7 @@ describe('Rate limiting — POST /api/auth/login', () => {
   }
 
   it('returns X-RateLimit headers on allowed requests', async () => {
-    const res = await loginPost(loginReq('admin', 'SuperSecret123!'))
+    const res = await loginPost(loginReq(TEST_ADMIN_USER, TEST_ADMIN_PASS))
     expect(res.status).toBe(200)
     expect(res.headers.get('x-ratelimit-limit')).toBe('10')
     expect(res.headers.get('x-ratelimit-remaining')).toBeDefined()
@@ -342,7 +346,7 @@ describe('Rate limiting — POST /api/auth/login', () => {
       await loginPost(loginReq('usera', 'WrongPassword!'))
     }
     // A different username must still be allowed (will get 401 invalid creds, not 429)
-    const res = await loginPost(loginReq('admin', 'SuperSecret123!'))
+    const res = await loginPost(loginReq(TEST_ADMIN_USER, TEST_ADMIN_PASS))
     expect(res.status).toBe(200)
   })
 })
