@@ -6,6 +6,10 @@
 
 ---
 
+**[Public Readme →]([https://basilsuhail.github.io/ProjectS-HomeForge](https://github.com/BasilSuhail/homelab-os-landing))**
+
+---
+
 ## Table of Contents
 
 **Getting Started**
