@@ -6,7 +6,7 @@
 
 ---
 
-**[Public Readme →]([https://basilsuhail.github.io/ProjectS-HomeForge](https://github.com/BasilSuhail/homelab-os-landing))**
+**GitHub Repo:** [homelab-os-landing →](https://github.com/BasilSuhail/homelab-os-landing)
 
 ---
 
