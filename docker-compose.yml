@@ -243,11 +243,13 @@ services:
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
       - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
-      - CORS_ALLOW_ORIGIN=http://localhost:8085,http://localhost:3069,http://${HOMEFORGE_LAN_IP:-localhost}:8085,http://${HOMEFORGE_LAN_IP:-localhost}:3069
+      - CORS_ALLOW_ORIGIN=*
       - WEBUI_AUTH=true
       - JWT_EXPIRES_IN=7d
       - ENABLE_PASSWORD_VALIDATION=true
-      - ENABLE_WEBSOCKET_SUPPORT=false
+      - ENABLE_WEBSOCKET_SUPPORT=true
+      - WEBUI_URL=http://${HOMEFORGE_LAN_IP:-localhost}:8085
+      - WEBUI_NAME=HomeForge AI
     depends_on:
       ollama:
         condition: service_healthy
@@ -272,11 +274,14 @@ services:
       - ./data/ollama:/root/.ollama
       - ./data/workspace:/workspace
       - ./config/ollama:/modelfiles:ro
+    environment:
+      - OLLAMA_MAX_LOADED_MODELS=1
+      - OLLAMA_KEEP_ALIVE=5m
     restart: unless-stopped
     deploy:
       resources:
         limits:
-          memory: 4g
+          memory: 8g
     healthcheck:
       test: ["CMD", "ollama", "list"]
       interval: 30s
