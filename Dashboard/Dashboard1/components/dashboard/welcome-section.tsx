@@ -81,7 +81,6 @@ export function WelcomeSection({ onNavigate }: WelcomeSectionProps) {
   const applications = useMemo(
     () =>
       SERVICE_PORTS
-        .filter((svc) => !(IS_LANDING && svc.name === 'Ollama'))
         .map((svc) => ({
           name: svc.name,
           url: 'port' in svc && hostname ? `http://${hostname}:${svc.port}` : "",
