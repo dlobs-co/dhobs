@@ -17,7 +17,6 @@ import { cn } from "@/lib/utils"
 import { AppHoverCard } from "@/components/dashboard/app-hover-card"
 import { HOVER_CARDS } from "@/lib/landing-data"
 
-const IS_LANDING = process.env.NEXT_PUBLIC_LANDING_MODE === 'true'
 
 const SERVICE_PORTS = [
   { name: "Jellyfin", port: 8096, icon: Play },
@@ -70,6 +69,7 @@ interface WelcomeSectionProps {
 }
 
 export function WelcomeSection({ onNavigate }: WelcomeSectionProps) {
+  const IS_LANDING = process.env.NEXT_PUBLIC_LANDING_MODE === 'true'
   const { colorTheme } = useTheme()
   const [hostname, setHostname] = useState("")
   const router = useRouter()

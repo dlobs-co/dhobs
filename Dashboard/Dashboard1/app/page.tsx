@@ -11,9 +11,8 @@ import { useTheme } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
 import { Construction } from "lucide-react"
 
-const IS_LANDING = process.env.NEXT_PUBLIC_LANDING_MODE === 'true'
-
 export default function HomePage() {
+  const IS_LANDING = process.env.NEXT_PUBLIC_LANDING_MODE === 'true'
   const { colorTheme } = useTheme()
   const [scrollProgress, setScrollProgress] = useState(0)
   const [mounted, setMounted] = useState(false)
