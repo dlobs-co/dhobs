@@ -159,6 +159,9 @@ function MemoryGauge({ value }: { value: number }) {
 
 const STORAGE_COLORS = ['#d4e157', '#22d3ee', '#a855f7', '#fb923c', '#ec4899'];
 
+import { MOCK_STATS } from "@/lib/landing-data"
+const IS_LANDING = process.env.NEXT_PUBLIC_LANDING_MODE === 'true'
+
 interface DashboardSectionProps {
   onExecContainer?: (containerName: string) => void
 }
@@ -171,6 +174,13 @@ export function DashboardSection({ onExecContainer }: DashboardSectionProps) {
   const isFetching = useRef(false)
 
   const fetchStats = async () => {
+    if (IS_LANDING) {
+      const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      setStats(MOCK_STATS)
+      setCpuHistory(prev => [...prev, { time: now, value: parseFloat(MOCK_STATS.cpu) }].slice(-15))
+      setNetHistory(prev => [...prev, { time: now, value: 0, upload: parseFloat(MOCK_STATS.netUp), download: parseFloat(MOCK_STATS.netDown) }].slice(-15))
+      return
+    }
     if (isFetching.current) return
     isFetching.current = true
     try {
