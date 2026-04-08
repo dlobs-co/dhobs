@@ -273,7 +273,7 @@ export function MetricsSection() {
         {/* CPU + Memory chart */}
         <div>
           <SectionHeader title="CPU & Memory" />
-          <div className="h-48 -mx-2">
+          <div className="h-36 -mx-2">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={history} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
                 <defs>
@@ -301,7 +301,7 @@ export function MetricsSection() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div>
             <SectionHeader title="Network I/O" />
-            <div className="h-40 -mx-2">
+            <div className="h-36 -mx-2">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={history} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
                   <defs>
