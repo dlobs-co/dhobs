@@ -119,17 +119,16 @@ export default function HomePage() {
       openApp("kiwix", "Kiwix", Book, <KiwixSection isWindow />)
       return
     }
-    // Close all open apps when navigating away
-    if (openWindows.length > 0 && section === "home") {
-      closeAllWindows()
+    // Minimize open windows when navigating to home
+    if (section === "home") {
+      setOpenWindows(prev => prev.map(w => w.isClosing ? w : { ...w, isMinimized: true }))
       setCurrentSection(section)
+      window.scrollTo({ top: 0, behavior: "smooth" })
       return
     }
-    setOpenWindows([])
+    // Minimize open windows when navigating to metrics
+    setOpenWindows(prev => prev.map(w => w.isClosing ? w : { ...w, isMinimized: true }))
     setCurrentSection(section)
-    if (section === "home") {
-      window.scrollTo({ top: 0, behavior: "smooth" })
-    }
   }
 
   // Show all open windows in the sidebar — active, minimized, or closing
@@ -209,9 +208,9 @@ export default function HomePage() {
               left: '104px',
               right: '16px',
               zIndex: 1000,
-              opacity: win.isClosing ? 0.3 : 1,
-              transform: win.isClosing ? 'scale(0.98)' : 'scale(1)',
-              pointerEvents: win.isClosing ? 'none' : 'auto',
+              opacity: win.isMinimized || win.isClosing ? 0 : 1,
+              transform: win.isMinimized || win.isClosing ? 'scale(0.98)' : 'scale(1)',
+              pointerEvents: win.isMinimized || win.isClosing ? 'none' : 'auto',
               transition: 'opacity 0.3s ease, transform 0.3s ease',
               borderRadius: '16px',
               overflow: 'hidden',
