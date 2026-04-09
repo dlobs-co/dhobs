@@ -230,7 +230,7 @@ export default function HomePage() {
               display: 'flex',
               flexDirection: 'column',
               border: `1px solid ${colorTheme.border}`,
-              backgroundColor: mounted ? colorTheme.card : '#18181b',
+              backgroundColor: '#18181b',
               boxShadow: `0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)`,
             }}
           >
@@ -272,7 +272,7 @@ export default function HomePage() {
             </div>
 
             {/* Window Content */}
-            <div className="flex-1 overflow-hidden relative">
+            <div className="flex-1 overflow-hidden relative" style={{ backgroundColor: '#18181b' }}>
               {win.component}
             </div>
           </div>
