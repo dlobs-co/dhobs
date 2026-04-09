@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef, useCallback } from "react"
-import { Activity, ChevronDown, ArrowUpRight, ArrowDownRight, MoreHorizontal, Plus, Download, RotateCcw } from "lucide-react"
+import { Activity, ChevronDown, ArrowUpRight, ArrowDownRight, MoreHorizontal, Plus, Download, RotateCcw, ServerOff, ChevronRight } from "lucide-react"
 import { Area, AreaChart, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, Line, LineChart } from "recharts"
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -232,6 +232,7 @@ export function MetricsSection() {
   const [cpuHistory, setCpuHistory] = useState<number[]>([])
   const [memHistory, setMemHistory] = useState<number[]>([])
   const [loading, setLoading] = useState(true)
+  const [expandedContainer, setExpandedContainer] = useState<string | null>(null)
   const isFetching = useRef(false)
   const rangeRef = useRef<HTMLDivElement>(null)
 
@@ -322,7 +323,7 @@ export function MetricsSection() {
     <div className="flex flex-col h-screen overflow-hidden pl-[88px]">
 
       {/* Header bar */}
-      <div className="flex items-center justify-between px-4 py-2.5 shrink-0 border-b border-border">
+      <div className="flex items-center justify-between px-3 sm:px-6 py-2.5 shrink-0 border-b border-border">
         <div>
           <h2 className="text-sm font-semibold text-foreground">Metrics</h2>
           <p className="text-[10px] text-foreground/25 mt-0.5">Real-time · 5s refresh</p>
@@ -349,21 +350,21 @@ export function MetricsSection() {
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+      <div className="flex-1 overflow-y-auto px-3 sm:px-6 py-3 space-y-4">
 
         {/* Stat pills */}
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
           {loading ? (
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <div className="flex flex-wrap items-center gap-x-4 sm:gap-x-6 gap-y-2">
               {[...Array(5)].map((_, i) => (
                 <div key={i} className="flex items-baseline gap-1.5">
-                  <div className="h-2.5 w-10 rounded bg-secondary/20 animate-pulse" />
-                  <div className="h-5 w-12 rounded bg-secondary/20 animate-pulse" />
+                  <div className="h-2.5 w-8 sm:w-10 rounded bg-secondary/20 animate-pulse" />
+                  <div className="h-4 sm:h-5 w-10 sm:w-12 rounded bg-secondary/20 animate-pulse" />
                 </div>
               ))}
             </div>
           ) : (
-            <>
+            <div className="flex flex-wrap items-center gap-x-4 sm:gap-x-6 gap-y-2">
               <div className="flex items-baseline gap-1.5" title="Total CPU usage across all containers">
                 <span className="text-[10px] text-foreground/30 uppercase tracking-wider">CPU</span>
                 <span className="text-base font-mono font-semibold text-foreground tabular-nums">{stats?.cpu ?? "0"}%</span>
@@ -393,13 +394,13 @@ export function MetricsSection() {
                 <span className="text-[11px] font-mono text-rose-400 tabular-nums">↑{stats?.netUp ?? "0"}</span>
                 <span className="text-[9px] text-foreground/20">MB/s</span>
               </div>
-            </>
+            </div>
           )}
         </div>
 
         {/* Left column: CPU chart, Network chart, System, Backup */}
         {/* Right column: Storage, Disk Usage */}
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,6.5fr)_minmax(0,3.5fr)] gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,6.5fr)_minmax(0,3.5fr)] gap-3 sm:gap-4">
           {/* Left column */}
           <div className="space-y-4">
             {/* CPU & Memory */}
@@ -582,6 +583,7 @@ export function MetricsSection() {
             <table className="w-full text-[11px]">
               <thead>
                 <tr className="border-b border-border">
+                  <th className="text-left py-1.5 px-2 font-medium text-foreground/20 uppercase tracking-wider text-[9px] w-4"></th>
                   <th className="text-left py-1.5 px-2 font-medium text-foreground/20 uppercase tracking-wider text-[9px]">Service</th>
                   <th className="text-left py-1.5 px-2 font-medium text-foreground/20 uppercase tracking-wider text-[9px]">Status</th>
                   <th className="text-right py-1.5 px-2 font-medium text-foreground/20 uppercase tracking-wider text-[9px]">CPU</th>
@@ -590,24 +592,55 @@ export function MetricsSection() {
                 </tr>
               </thead>
               <tbody>
-                {stats.containers.map(c => (
-                  <tr key={c.name} className="border-b border-border/40 hover:bg-secondary/5 transition-colors group" title={`${c.name} — Status: ${statusLabel(c.status)}, CPU: ${c.cpu}, Memory: ${c.mem.split(" / ")[0]}`}>
-                    <td className="py-1.5 px-2 font-medium text-foreground/70 capitalize">{c.name}</td>
-                    <td className="py-1.5 px-2">
-                      <span className="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded text-[9px] font-medium" style={{ backgroundColor: `${statusColor(c.status)}12`, color: statusColor(c.status) }}>
-                        <span className="w-1 h-1 rounded-full" style={{ backgroundColor: statusColor(c.status) }} />
-                        {statusLabel(c.status)}
-                      </span>
-                    </td>
-                    <td className="py-1.5 px-2 text-right font-mono tabular-nums text-foreground/40">{c.cpu}</td>
-                    <td className="py-1.5 px-2 text-right font-mono tabular-nums text-foreground/40">{c.mem.split(" / ")[0]}</td>
-                    <td className="py-1.5 px-2 text-right opacity-0 group-hover:opacity-100 transition-opacity">
-                      <MoreHorizontal className="w-3 h-3 text-foreground/30 ml-auto" />
+                {stats.containers.length > 0 ? stats.containers.map(c => (
+                  <>
+                    <tr
+                      key={c.name}
+                      className={`border-b border-border/40 hover:bg-secondary/5 transition-colors group cursor-pointer ${expandedContainer === c.name ? 'bg-secondary/5' : ''}`}
+                      title={`${c.name} — Status: ${statusLabel(c.status)}, CPU: ${c.cpu}, Memory: ${c.mem.split(" / ")[0]}`}
+                      onClick={() => setExpandedContainer(expandedContainer === c.name ? null : c.name)}
+                    >
+                      <td className="py-1.5 px-2 text-foreground/20">
+                        <ChevronRight className={`w-3 h-3 transition-transform duration-200 ${expandedContainer === c.name ? 'rotate-90' : ''}`} />
+                      </td>
+                      <td className="py-1.5 px-2 font-medium text-foreground/70 capitalize">{c.name}</td>
+                      <td className="py-1.5 px-2">
+                        <span className="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded text-[9px] font-medium" style={{ backgroundColor: `${statusColor(c.status)}12`, color: statusColor(c.status) }}>
+                          <span className="w-1 h-1 rounded-full" style={{ backgroundColor: statusColor(c.status) }} />
+                          {statusLabel(c.status)}
+                        </span>
+                      </td>
+                      <td className="py-1.5 px-2 text-right font-mono tabular-nums text-foreground/40">{c.cpu}</td>
+                      <td className="py-1.5 px-2 text-right font-mono tabular-nums text-foreground/40">{c.mem.split(" / ")[0]}</td>
+                      <td className="py-1.5 px-2 text-right opacity-0 group-hover:opacity-100 transition-opacity">
+                        <MoreHorizontal className="w-3 h-3 text-foreground/30 ml-auto" />
+                      </td>
+                    </tr>
+                    {expandedContainer === c.name && (
+                      <tr className="bg-secondary/5">
+                        <td colSpan={6} className="px-2 pb-2">
+                          <div className="ml-6 text-[10px] text-foreground/50 grid grid-cols-2 gap-x-4 gap-y-1 py-1">
+                            <span>Full Memory: <span className="font-mono text-foreground/70">{c.mem}</span></span>
+                            <span>Net I/O: <span className="font-mono text-foreground/70">{String(c.netIO || "N/A")}</span></span>
+                            <span>Block I/O: <span className="font-mono text-foreground/70">{String(c.blockIO || "N/A")}</span></span>
+                            <span>PIDs: <span className="font-mono text-foreground/70">{String(c.pids || "N/A")}</span></span>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                )) : (
+                  <tr>
+                    <td colSpan={6} className="py-12">
+                      <div className="flex flex-col items-center justify-center text-center">
+                        <div className="w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center mb-3">
+                          <ServerOff className="w-8 h-8 text-foreground/15" />
+                        </div>
+                        <p className="text-[11px] font-medium text-foreground/30">No containers running</p>
+                        <p className="text-[10px] text-foreground/20 mt-0.5">Start services via docker-compose to see them here</p>
+                      </div>
                     </td>
                   </tr>
-                ))}
-                {stats.containers.length === 0 && (
-                  <tr><td colSpan={5} className="py-6 text-center text-foreground/20 text-[11px]">No containers</td></tr>
                 )}
               </tbody>
             </table>
