@@ -354,6 +354,22 @@ From Issue #129 — the #1 user pain point: "tinkering until it breaks, no easy 
 - Simplified tar command — single `tar -czf ... -C / data` with exclusions
 - "New Backup" label instead of just "New"
 
+### PR #165 — Metrics 65/35 Layout + Backup API Fix
+**Date:** April 9, 2026 | **Branch:** `fix/metrics-final`
+
+- Changed column ratio from 50/50 to 65/35 (left/right)
+- Backup API: mounted `/data/backups` as writable volume (was read-only)
+- Added tar availability check, stdout/stderr logging, file size verification
+- Returns actual error message instead of generic "Backup failed"
+
+### PR #166 — Metrics UX Polish
+**Date:** April 9, 2026 | **Branch:** `polish/metrics-ux`
+
+- Loading skeleton states — pulsing placeholder bars while metrics load
+- Stat pill tooltips — hover on CPU/Memory/Disk/Uptime/Net for descriptions
+- Container row tooltips — hover any row for full details
+- Null safety — all stat accesses use optional chaining + fallbacks
+
 ---
 
 ## Future Work
