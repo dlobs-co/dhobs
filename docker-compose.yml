@@ -192,14 +192,14 @@ services:
       - '8008:8008'
     volumes:
       - ./data/matrix/synapse:/data
-      - ./config/matrix/homeserver.yaml:/data/homeserver.yaml:ro
-      - ./config/matrix/localhost.log.config:/data/localhost.log.config:ro
+      - ./config/matrix:/etc/synapse-config:ro
     environment:
       - MATRIX_REGISTRATION_SECRET=${MATRIX_REGISTRATION_SECRET}
       - MATRIX_MACAROON_SECRET_KEY=${MATRIX_MACAROON_SECRET_KEY}
       - MATRIX_FORM_SECRET=${MATRIX_FORM_SECRET}
       - MATRIX_DB_USER=${MATRIX_DB_USER}
       - MATRIX_DB_PASSWORD=${MATRIX_DB_PASSWORD}
+    entrypoint: ["/bin/sh", "-c", "python3 /etc/synapse-config/gen_config.py && cp /etc/synapse-config/localhost.log.config /data/localhost.log.config && exec python -m synapse.app.homeserver -c /data/homeserver.yaml -c /data/localhost.log.config"]
     restart: unless-stopped
     deploy:
       resources:
