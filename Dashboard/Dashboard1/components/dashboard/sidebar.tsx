@@ -43,7 +43,15 @@ export function Sidebar({
   const IS_LANDING = process.env.NEXT_PUBLIC_LANDING_MODE === 'true'
   const [showSettings, setShowSettings] = useState(false)
   const [showThemes, setShowThemes] = useState(false)
+  const [bouncingId, setBouncingId] = useState<string | null>(null)
   const { colorTheme, setColorTheme } = useTheme()
+
+  // Trigger bounce animation on dock click
+  const handleBounceClick = (id: string) => {
+    setBouncingId(id)
+    onDockAppClick?.(id)
+    setTimeout(() => setBouncingId(null), 600)
+  }
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -107,24 +115,29 @@ export function Sidebar({
                 return (
                   <Tooltip key={app.id}>
                     <TooltipTrigger asChild>
-                      <button
-                        onClick={() => onDockAppClick?.(app.id)}
-                        className="relative flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-300"
-                        style={{
-                          backgroundColor: isActive
-                            ? colorTheme.accent
-                            : isClosing
-                            ? `${colorTheme.accent}08`
-                            : `${colorTheme.accent}15`,
-                          color: isActive
-                            ? colorTheme.accentForeground
-                            : colorTheme.accent,
-                          opacity: isClosing ? 0.3 : 1,
-                          filter: isClosing ? 'grayscale(1)' : 'none',
-                        }}
-                      >
-                        <Icon className="h-[18px] w-[18px]" strokeWidth={1.5} />
-                      </button>
+                      <div className="relative flex flex-col items-center">
+                        <button
+                          onClick={() => handleBounceClick(app.id)}
+                          className={`relative flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-300 ${bouncingId === app.id ? 'animate-bounce-dock' : ''}`}
+                          style={{
+                            backgroundColor: isActive
+                              ? colorTheme.accent
+                              : isClosing
+                              ? `${colorTheme.accent}08`
+                              : `${colorTheme.accent}15`,
+                            color: isActive
+                              ? colorTheme.accentForeground
+                              : colorTheme.accent,
+                            opacity: isClosing ? 0.3 : 1,
+                            filter: isClosing ? 'grayscale(1)' : 'none',
+                          }}
+                        >
+                          <Icon className="h-[18px] w-[18px]" strokeWidth={1.5} />
+                        </button>
+                        {isActive && (
+                          <span className="w-1 h-1 rounded-full mt-0.5" style={{ backgroundColor: colorTheme.accent }} />
+                        )}
+                      </div>
                     </TooltipTrigger>
                     <TooltipContent side="right" sideOffset={12}>
                       <p>

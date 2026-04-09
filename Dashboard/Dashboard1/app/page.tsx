@@ -266,6 +266,19 @@ export default function HomePage() {
             transform: translate(5%, -3%) rotate(1.5deg) scale(1.01);
           }
         }
+
+        /* macOS Dock-style bounce animation */
+        @keyframes bounce-dock {
+          0%, 100% { transform: translateY(0); }
+          20% { transform: translateY(-8px); }
+          40% { transform: translateY(2px); }
+          60% { transform: translateY(-4px); }
+          80% { transform: translateY(1px); }
+        }
+
+        .animate-bounce-dock {
+          animation: bounce-dock 0.6s ease-in-out;
+        }
         
         html {
           scroll-behavior: smooth;
