@@ -80,6 +80,14 @@ export default function HomePage() {
     }, 400)
   }, [])
 
+  // Close all open windows with grace period (triggered by Home nav)
+  const closeAllWindows = useCallback(() => {
+    setOpenWindows(prev => prev.map(w => w.isClosing ? w : { ...w, isClosing: true, isMinimized: false }))
+    setTimeout(() => {
+      setOpenWindows(prev => prev.filter(w => !w.isClosing))
+    }, 25000) // 25 second grace period — dock icon stays visible
+  }, [])
+
   const minimizeApp = useCallback((id: string) => {
     setOpenWindows(prev => prev.map(w => w.id === id ? { ...w, isMinimized: true } : w))
   }, [])
@@ -112,6 +120,11 @@ export default function HomePage() {
       return
     }
     // Close all open apps when navigating away
+    if (openWindows.length > 0 && section === "home") {
+      closeAllWindows()
+      setCurrentSection(section)
+      return
+    }
     setOpenWindows([])
     setCurrentSection(section)
     if (section === "home") {
@@ -196,7 +209,7 @@ export default function HomePage() {
               left: '104px',
               right: '16px',
               zIndex: 1000,
-              opacity: win.isClosing ? 0 : 1,
+              opacity: win.isClosing ? 0.3 : 1,
               transform: win.isClosing ? 'scale(0.98)' : 'scale(1)',
               pointerEvents: win.isClosing ? 'none' : 'auto',
               transition: 'opacity 0.3s ease, transform 0.3s ease',
@@ -270,10 +283,10 @@ export default function HomePage() {
             <>
               <div
                 style={{
-                  opacity: openWindows.some(w => !w.isMinimized) ? 0 : 1 - scrollProgress * 1.5,
+                  opacity: openWindows.some(w => !w.isMinimized && !w.isClosing) ? 0 : 1 - scrollProgress * 1.5,
                   transform: `translateY(${-scrollProgress * 50}px)`,
                   transition: "opacity 0.1s ease-out, transform 0.1s ease-out",
-                  pointerEvents: openWindows.some(w => !w.isMinimized) ? 'none' : 'auto',
+                  pointerEvents: openWindows.some(w => !w.isMinimized && !w.isClosing) ? 'none' : 'auto',
                   position: openWindows.length > 0 ? 'relative' : 'relative',
                 }}
               >
