@@ -85,17 +85,17 @@ export function Sidebar({
 
         {/* Main Navigation (Home & Metrics) */}
         <nav className="flex flex-col items-center gap-1 px-2 py-3">
-          <NavButton 
+          <NavButton
             icon={LayoutGrid}
             label="Home"
-            active={activeSection === "home" || activeSection === "dashboard"}
+            active={currentSection === "home"}
             onClick={() => onNavigate?.("home")}
             theme={colorTheme}
           />
           <NavButton
             icon={Activity}
             label="Metrics"
-            active={activeSection === "metrics"}
+            active={currentSection === "metrics"}
             onClick={() => onNavigate?.("metrics")}
             theme={colorTheme}
           />
