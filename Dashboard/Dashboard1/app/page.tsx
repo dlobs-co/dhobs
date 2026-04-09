@@ -215,7 +215,7 @@ export default function HomePage() {
           <div
             key={win.id}
             onClick={() => bringToFront(win.id)}
-            className="fixed transition-all"
+            className="fixed"
             style={{
               top: win.position.y,
               left: win.position.x,
@@ -225,19 +225,29 @@ export default function HomePage() {
               opacity: win.isClosing ? 0 : 1,
               transform: win.isClosing ? 'scale(0.95)' : 'scale(1)',
               pointerEvents: win.isClosing ? 'none' : 'auto',
-              transition: win.isClosing ? 'opacity 0.4s, transform 0.4s' : 'box-shadow 0.2s',
+              transition: win.isClosing ? 'opacity 0.4s ease, transform 0.4s ease' : 'none',
               borderRadius: '14px',
-              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
               border: `1px solid ${colorTheme.border}`,
-              backgroundColor: colorTheme.card,
-              boxShadow: `0 20px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03)`,
+              backgroundColor: mounted ? colorTheme.card : '#18181b',
+              boxShadow: `0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)`,
             }}
           >
-            {/* Title Bar */}
+            {/* Title Bar - above everything */}
             <div
-              className="flex items-center justify-between px-4 py-2.5 select-none"
-              style={{ borderBottom: `1px solid ${colorTheme.border}`, cursor: 'grab' }}
+              className="flex items-center justify-between px-4 py-2.5 select-none shrink-0"
+              style={{
+                borderBottom: `1px solid ${colorTheme.border}`,
+                backgroundColor: mounted ? `${colorTheme.card}cc` : '#18181bcc',
+                backdropFilter: 'blur(12px)',
+                cursor: 'grab',
+                zIndex: 10,
+                position: 'relative',
+              }}
               onMouseDown={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
                 setDragState({ id: win.id, startX: e.clientX, startY: e.clientY, startLeft: win.position.x, startTop: win.position.y })
               }}
             >
@@ -262,7 +272,7 @@ export default function HomePage() {
             </div>
 
             {/* Window Content */}
-            <div className="h-[calc(100%-42px)] overflow-hidden">
+            <div className="flex-1 overflow-hidden relative">
               {win.component}
             </div>
           </div>
