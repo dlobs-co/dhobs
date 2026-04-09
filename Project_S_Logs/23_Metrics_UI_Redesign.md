@@ -331,6 +331,31 @@ Both degrade gracefully when unavailable (hidden if no data).
 
 ---
 
+## Subsequent PRs (continued)
+
+### PR #161 — Backup System Phase 1 (One-Click Backup & Restore)
+**Date:** April 9, 2026 | **Branch:** `feat/snapshot-backup` | **Issue:** #160
+
+From Issue #129 — the #1 user pain point: "tinkering until it breaks, no easy rollback."
+
+**What was built:**
+- `GET /api/backup` — list existing backups from `/data/backups/`
+- `POST /api/backup` — trigger new tarball backup of `/data`
+- `POST /api/backup/restore` — initiate restore from backup
+- `backup_history` table in SQLite — tracks filename, size, status, timestamp
+- Interactive backup widget in metrics page — "New Backup" button, history list, restore buttons
+
+**Excluded from backup:** backups dir itself, node_modules, .git, .next, *.log, tmp
+
+### PR #162 — Backup UI Fix
+**Date:** April 9, 2026 | **Branch:** `fix/backup-ui`
+
+- Fixed cramped "New" button — moved inside backup card with proper spacing
+- Simplified tar command — single `tar -czf ... -C / data` with exclusions
+- "New Backup" label instead of just "New"
+
+---
+
 ## Future Work
 
 See Issue #145 (Metrics UI Overhaul) and Issue #144 (Dashboard UI Overhaul).
