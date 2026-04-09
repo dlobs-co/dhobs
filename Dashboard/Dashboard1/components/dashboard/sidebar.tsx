@@ -24,6 +24,7 @@ import { type DockApp } from "@/components/dashboard/dock"
 interface SidebarProps {
   className?: string
   activeSection?: string
+  currentSection?: string
   onNavigate?: (section: string) => void
   terminalOpen?: boolean
   onToggleTerminal?: () => void
@@ -31,10 +32,11 @@ interface SidebarProps {
   onDockAppClick?: (id: string) => void
 }
 
-export function Sidebar({ 
-  className, 
-  activeSection = "home", 
-  onNavigate, 
+export function Sidebar({
+  className,
+  activeSection = "home",
+  currentSection = "home",
+  onNavigate,
   terminalOpen, 
   onToggleTerminal,
   dockApps = [],

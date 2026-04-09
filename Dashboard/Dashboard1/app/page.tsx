@@ -198,6 +198,7 @@ export default function HomePage() {
       {/* Sidebar */}
       <Sidebar
         activeSection={openWindows.some(w => !w.isClosing) ? "app" : currentSection}
+        currentSection={currentSection}
         onNavigate={handleNavigate}
         terminalOpen={terminalOpen}
         onToggleTerminal={() => setTerminalOpen(prev => !prev)}
