@@ -11,7 +11,7 @@ import { TerminalPanel } from "@/components/dashboard/terminal-panel"
 import { type DockApp } from "@/components/dashboard/dock"
 import { useTheme } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
-import { Construction, BrainCircuit, Book, X, Minus, Maximize2 } from "lucide-react"
+import { Construction, BrainCircuit, Book, X, Minus } from "lucide-react"
 
 interface ActiveWindow {
   id: string
@@ -34,7 +34,6 @@ export default function HomePage() {
   const [execTarget, setExecTarget] = useState<string | undefined>()
   const [currentSection, setCurrentSection] = useState("home")
   const [openWindows, setOpenWindows] = useState<ActiveWindow[]>([])
-  const [dragState, setDragState] = useState<{ id: string; startX: number; startY: number; startLeft: number; startTop: number } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -54,27 +53,6 @@ export default function HomePage() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [currentSection])
 
-  // Drag handlers
-  useEffect(() => {
-    if (!dragState) return
-    const handleMouseMove = (e: MouseEvent) => {
-      const dx = e.clientX - dragState.startX
-      const dy = e.clientY - dragState.startY
-      setOpenWindows(prev => prev.map(w =>
-        w.id === dragState.id
-          ? { ...w, position: { x: dragState.startLeft + dx, y: dragState.startTop + dy } }
-          : w
-      ))
-    }
-    const handleMouseUp = () => setDragState(null)
-    document.addEventListener("mousemove", handleMouseMove)
-    document.addEventListener("mouseup", handleMouseUp)
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove)
-      document.removeEventListener("mouseup", handleMouseUp)
-    }
-  }, [dragState])
-
   const bringToFront = useCallback((id: string) => {
     setOpenWindows(prev => {
       const maxZ = Math.max(0, ...prev.map(w => w.zIndex))
@@ -87,14 +65,11 @@ export default function HomePage() {
       const existing = prev.find(w => w.id === id)
       if (existing) {
         if (existing.isClosing) return prev
-        // Restore if minimized
         const maxZ = Math.max(0, ...prev.map(w => w.zIndex))
         return prev.map(w => w.id === id ? { ...w, isMinimized: false, zIndex: maxZ + 1 } : w)
       }
       const maxZ = Math.max(0, ...prev.map(w => w.zIndex))
-      // Stagger window positions
-      const offset = (prev.length % 4) * 30
-      return [...prev, { id, name, icon, component, isMinimized: false, zIndex: maxZ + 1, position: { x: 120 + offset, y: 40 + offset }, size: { w: Math.min(900, window.innerWidth - 200), h: Math.min(700, window.innerHeight - 120) } }]
+      return [...prev, { id, name, icon, component, isMinimized: false, zIndex: maxZ + 1, position: { x: 0, y: 0 }, size: { w: 0, h: 0 } }]
     })
   }, [])
 
@@ -209,62 +184,49 @@ export default function HomePage() {
         onDockAppClick={handleDockClick}
       />
 
-      {/* Floating App Panels */}
+      {/* Floating App Panels — full screen with title bar */}
       {openWindows.map((win) => (
         !win.isMinimized && (
           <div
             key={win.id}
-            onClick={() => bringToFront(win.id)}
             className="fixed"
             style={{
-              top: win.position.y,
-              left: win.position.x,
-              width: win.size.w,
-              height: win.size.h,
+              top: '16px',
+              bottom: '16px',
+              left: '104px',
+              right: '16px',
               zIndex: win.zIndex,
               opacity: win.isClosing ? 0 : 1,
-              transform: win.isClosing ? 'scale(0.95)' : 'scale(1)',
+              transform: win.isClosing ? 'scale(0.98)' : 'scale(1)',
               pointerEvents: win.isClosing ? 'none' : 'auto',
-              transition: win.isClosing ? 'opacity 0.4s ease, transform 0.4s ease' : 'none',
-              borderRadius: '14px',
+              transition: 'opacity 0.3s ease, transform 0.3s ease',
+              borderRadius: '16px',
+              overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
               border: `1px solid ${colorTheme.border}`,
-              backgroundColor: '#18181b',
-              boxShadow: `0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)`,
+              backgroundColor: colorTheme.card,
+              boxShadow: '0 32px 80px rgba(0,0,0,0.5)',
             }}
           >
-            {/* Title Bar - above everything */}
-            <div
-              className="flex items-center justify-between px-4 py-2.5 select-none shrink-0"
-              style={{
-                borderBottom: `1px solid ${colorTheme.border}`,
-                backgroundColor: mounted ? `${colorTheme.card}cc` : '#18181bcc',
-                backdropFilter: 'blur(12px)',
-                cursor: 'grab',
-                zIndex: 10,
-                position: 'relative',
-              }}
-              onMouseDown={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                setDragState({ id: win.id, startX: e.clientX, startY: e.clientY, startLeft: win.position.x, startTop: win.position.y })
-              }}
-            >
-              <div className="flex items-center gap-2.5">
+            {/* Title Bar */}
+            <div className="flex items-center justify-between px-4 py-2 shrink-0" style={{ borderBottom: `1px solid ${colorTheme.border}` }}>
+              <div className="flex items-center gap-2">
                 <win.icon className="w-4 h-4" style={{ color: colorTheme.accent }} />
-                <span className="text-xs font-semibold text-foreground/70">{win.name}</span>
+                <span className="text-xs font-semibold text-foreground/60">{win.name}</span>
               </div>
               <div className="flex items-center gap-1">
                 <button
                   onClick={(e) => { e.stopPropagation(); minimizeApp(win.id) }}
                   className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-secondary/30 transition-colors"
+                  title="Minimize"
                 >
                   <Minus className="w-3.5 h-3.5 text-foreground/30" />
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); closeApp(win.id) }}
                   className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-red-500/10 transition-colors"
+                  title="Close"
                 >
                   <X className="w-3.5 h-3.5 text-foreground/30 hover:text-red-400" />
                 </button>
@@ -272,7 +234,7 @@ export default function HomePage() {
             </div>
 
             {/* Window Content */}
-            <div className="flex-1 overflow-hidden relative" style={{ backgroundColor: '#18181b' }}>
+            <div className="flex-1 overflow-hidden">
               {win.component}
             </div>
           </div>
