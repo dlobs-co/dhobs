@@ -1,7 +1,8 @@
 # ADR-0005: Nginx Reverse Proxy for All User-Facing Services
 
-**Status:** Planned (not yet implemented)
+**Status:** Accepted
 **Date:** 2026-04-10
+**Implemented:** 2026-04-10 (PR #179)
 
 ## Context
 
@@ -23,13 +24,14 @@ Add nginx as a container in `docker-compose.yml` and make it the single entry po
 
 `config/nginx/nginx.conf` exists with proxy blocks for 5 of 15 services (Dashboard, Jellyfin, Nextcloud, Element, Vaultwarden). The nginx container is NOT in `docker-compose.yml`.
 
-## Planned Implementation
+## Implementation
 
-- Add nginx service to `docker-compose.yml`
-- Complete proxy config for all 15 user-facing services
-- WebSocket upgrade support (`Upgrade: websocket` → `Connection: upgrade`)
-- Healthcheck for nginx container
-- Documented SSL placeholder strategy (self-signed for LAN, Let's Encrypt for domain)
+- Added nginx service to `docker-compose.yml` (image `nginx:alpine`, frontend + backend networks)
+- Full proxy config for all 15 user-facing services
+- WebSocket upgrade support for 6 services (dashboard terminal, Collabora, Theia, Matrix, Vaultwarden, Open-WebUI)
+- Healthcheck at `/nginx-health`
+- Nextcloud DAV redirects for CardDAV/CalDAV sync clients
+- All existing direct ports preserved during transition
 
 ## Consequences
 
