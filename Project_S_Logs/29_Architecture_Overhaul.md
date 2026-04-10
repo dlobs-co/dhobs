@@ -29,7 +29,10 @@ HomeForge has 15 services orchestrated by Docker Compose, a Next.js 16 dashboard
 | Phase 3 — Reverse Proxy Integration | ✅ Complete | #179 |
 | Phase 4 — Dashboard Internal Architecture | ✅ Complete | #180 |
 | Phase 5 — Data Volume Contract | ✅ Complete | #181 |
-| Phase 6 — Validation | Not started | — |
+| Phase 6 — Validation | ✅ Complete | — |
+| Phase 7 — Security Hardening | ✅ Complete | #183 |
+| Phase 8 — Operational Reliability | Not started | — |
+| Phase 9 — Update & Rollback Strategy | Not started | — |
 
 ---
 
