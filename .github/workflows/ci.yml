@@ -23,7 +23,7 @@ jobs:
           cache-dependency-path: Dashboard/Dashboard1/package-lock.json
       - run: npm ci
       - run: npx tsc --noEmit
-      - run: npx eslint . --max-warnings 0 || true  # Don't fail on lint warnings yet
+      - run: npx eslint . --max-warnings 0 || true
 
   docker-build:
     name: Docker Compose Build
@@ -38,11 +38,12 @@ jobs:
           for secret in mysql_root_password mysql_password nextcloud_admin_password collabora_password matrix_registration_secret matrix_macaroon_secret_key matrix_form_secret webui_secret_key vpn_admin_password; do
             echo "ci_test_secret" > data/secrets/$secret
           done
+          echo "Secrets created:"
+          ls -la data/secrets/
       - name: Validate docker-compose.yml
         run: docker compose config --quiet
       - name: Build all services
         run: docker compose build dashboard
-        # Only build dashboard (our code) - other services are pre-built images
 
   security-check:
     name: Security Scan
