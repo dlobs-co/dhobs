@@ -337,11 +337,8 @@ services:
       - ./config/scripts/read-secrets.sh:/read-secrets.sh:ro
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
-<<<<<<< Updated upstream
       - WEBUI_SECRET_KEY_FILE=/run/secrets/webui_secret_key
-=======
       - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
->>>>>>> Stashed changes
       - CORS_ALLOW_ORIGIN=*
       - WEBUI_AUTH=true
       - JWT_EXPIRES_IN=7d
@@ -349,11 +346,8 @@ services:
       - ENABLE_WEBSOCKET_SUPPORT=true
       - WEBUI_URL=http://${HOMEFORGE_LAN_IP:-localhost}:8085
       - WEBUI_NAME=HomeForge AI
-<<<<<<< Updated upstream
     secrets:
       - webui_secret_key
-=======
->>>>>>> Stashed changes
     depends_on:
       ollama:
         condition: service_healthy
