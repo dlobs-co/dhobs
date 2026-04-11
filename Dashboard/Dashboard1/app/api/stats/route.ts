@@ -8,6 +8,16 @@ import { getDb } from '@/lib/db'
 
 const execAsync = promisify(exec)
 
+// Helper to fetch metrics from the Host Agent (macOS/Windows support)
+async function fetchAgentMetrics(): Promise<any | null> {
+  try {
+    // Docker Desktop exposes host.docker.internal to the container
+    const res = await fetch('http://host.docker.internal:9101/metrics', { signal: AbortSignal.timeout(2000) })
+    if (res.ok) return await res.json()
+  } catch { /* Agent not running or unreachable */ }
+  return null
+}
+
 // Function to get directory size in bytes
 async function getDirSize(dirPath: string): Promise<number> {
   try {
@@ -398,6 +408,9 @@ export async function GET() {
       readUPSStatus(),
     ])
 
+    // 6. Fetch Host Agent metrics (macOS/Windows support)
+    const agentData = await fetchAgentMetrics()
+
     let totalCpu = 0
     let totalMemPerc = 0
     let totalMemBytes = 0
@@ -433,10 +446,15 @@ export async function GET() {
     // Get container health status
     const containersWithHealth = await readContainerHealth(projectContainers)
 
+    // Merge Agent Data if available (Priority: Agent > Linux Mounts > Container Stats)
+    const finalCpu = agentData?.cpu?.load ? agentData.cpu.load.toFixed(1) : cpuVal.toFixed(1)
+    const finalMem = agentData?.memory?.usedPerc ? agentData.memory.usedPerc : memPercVal.toFixed(1)
+    const finalDisk = agentData?.disk?.[0]?.usePerc ?? diskPerc
+
     const result = {
-      cpu: cpuVal.toFixed(1),
-      memPerc: memPercVal.toFixed(1),
-      memBytes: memBytesVal.toFixed(2),
+      cpu: finalCpu,
+      memPerc: finalMem,
+      memBytes: agentData?.memory?.total ? (agentData.memory.total / (1024 * 1024 * 1024)).toFixed(2) : memBytesVal.toFixed(2),
       netDown: netDownVal.toFixed(1),
       netUp: netUpVal.toFixed(1),
       storage: storageStats.map(s => ({
@@ -450,16 +468,17 @@ export async function GET() {
       containers: containersWithHealth,
       gpu: gpuData ? { load: gpuData.load, temp: gpuData.temp } : null,
       temps,
-      diskUsedPerc: diskPerc,
-      uptimeDays,
+      diskUsedPerc: finalDisk,
+      uptimeDays: agentData?.uptime ?? uptimeDays,
       swap: swapData ? { total: swapData.total, used: swapData.used, perc: swapData.perc } : null,
-      loadAvg: loadAvg ? { load1: loadAvg.load1, load5: loadAvg.load5, load15: loadAvg.load15 } : null,
+      loadAvg: agentData?.loadAvg ? { load1: agentData.loadAvg[0], load5: agentData.loadAvg[1], load15: agentData.loadAvg[2] } : (loadAvg ? { load1: loadAvg.load1, load5: loadAvg.load5, load15: loadAvg.load15 } : null),
       netErrors: netErrors || null,
       disks: diskBreakdown,
       smart: smartHealth,
       power: powerData,
       backup: backupData,
       ups: upsData,
+      platform: agentData?.platform || (fs.existsSync('/host/proc') ? 'linux' : 'docker-vm'),
     }
 
     // Write to SQLite history (every poll)
