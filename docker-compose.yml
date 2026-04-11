@@ -1,3 +1,4 @@
+version: "3.8"
 services:
   # Pin: major.minor.patch (stable releases, safe to pin)
   jellyfin:
