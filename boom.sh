@@ -134,6 +134,27 @@ if [ ! -f ./data/secrets/mysql_root_password ]; then
     done
 fi
 
+# Ensure Docker Secrets exist for all services
+# This must happen BEFORE docker compose up, otherwise Docker fails to mount the files.
+if [ ! -f ./data/secrets/mysql_root_password ]; then
+    mkdir -p ./data/secrets
+    echo "🔐 Initializing Docker Secrets..."
+    
+    # Try migration script first
+    if [ -f scripts/migrate-secrets.sh ]; then
+        bash scripts/migrate-secrets.sh || true
+    fi
+
+    # Fallback: Generate random secrets for any missing files
+    # This ensures the container starts even if .env is incomplete or migration fails.
+    for secret in mysql_root_password mysql_password nextcloud_admin_password collabora_password matrix_registration_secret matrix_macaroon_secret_key matrix_form_secret webui_secret_key vpn_admin_password; do
+        if [ ! -f "./data/secrets/$secret" ]; then
+            openssl rand -hex 32 > "./data/secrets/$secret"
+            echo "   ✅ Generated random secret: $secret"
+        fi
+    done
+fi
+
 # Check for native Ollama process holding port 11434 (common on macOS)
 if lsof -i :11434 -sTCP:LISTEN &>/dev/null 2>&1; then
     echo "⚠️  Port 11434 is already in use (native Ollama running)."
