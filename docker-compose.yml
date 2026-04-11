@@ -60,6 +60,9 @@ services:
       - socket-data:/var/run/docker-proxy.sock
       - ./data:/data:ro
       - ./data/security:/app/data/security
+      # Host metrics for Linux support (graceful degrade on macOS/Windows)
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
     environment:
       - PORT=3069
       - WS_PORT=3070

@@ -56,12 +56,16 @@ async function readTemps(gpuTemp: number | null): Promise<{ cpu: number | null; 
     sys: null,
   }
 
+  const sysBase = fs.existsSync('/host/sys/class/thermal') ? '/host/sys' : '/sys'
+
   try {
-    const zones = fs.readdirSync('/sys/class/thermal').filter(f => f.startsWith('thermal_zone'))
+    const thermalPath = `${sysBase}/class/thermal`
+    if (!fs.existsSync(thermalPath)) return result
+    const zones = fs.readdirSync(thermalPath).filter(f => f.startsWith('thermal_zone'))
     const readings = zones.map(zone => {
       try {
-        const temp = parseInt(fs.readFileSync(`/sys/class/thermal/${zone}/temp`, 'utf-8').trim()) / 1000
-        const type = fs.readFileSync(`/sys/class/thermal/${zone}/type`, 'utf-8').trim()
+        const temp = parseInt(fs.readFileSync(`${thermalPath}/${zone}/temp`, 'utf-8').trim()) / 1000
+        const type = fs.readFileSync(`${thermalPath}/${zone}/type`, 'utf-8').trim()
         return { type, temp }
       } catch {
         return null
@@ -88,8 +92,9 @@ async function readDiskUsage(): Promise<number | null> {
 
 // System uptime in days — Linux only
 async function readUptime(): Promise<number | null> {
+  const raw = tryRead('/proc/uptime')
+  if (!raw) return null
   try {
-    const raw = fs.readFileSync('/proc/uptime', 'utf-8').trim()
     const seconds = parseFloat(raw.split(' ')[0])
     return Math.floor(seconds / 86400)
   } catch { return null }
@@ -156,8 +161,9 @@ async function readSmartHealth(): Promise<Array<{ device: string; model: string;
 // Power consumption — via Intel RAPL or powercap
 async function readPower(): Promise<{ watts: number | null; kwhEstimate: number | null }> {
   try {
+    const sysBase = fs.existsSync('/host/sys/class/powercap') ? '/host/sys' : '/sys'
     // Intel RAPL (most common on Intel CPUs)
-    const energyFile = '/sys/class/powercap/intel-rapl/intel-rapl:0/energy_uj'
+    const energyFile = `${sysBase}/class/powercap/intel-rapl/intel-rapl:0/energy_uj`
     if (fs.existsSync(energyFile)) {
       const energyUj = parseInt(fs.readFileSync(energyFile, 'utf-8').trim())
       const maxPowerFile = '/sys/class/powercap/intel-rapl/intel-rapl:0/max_energy_range_uj'
@@ -246,10 +252,24 @@ async function readUPSStatus(): Promise<{ batteryPerc: number | null; loadPerc: 
   return { batteryPerc: null, loadPerc: null, runtimeMin: null, status: null }
 }
 
+// Helper to read host metrics: tries /host/proc (Linux mounts) first, then /proc (Container/Docker VM)
+function tryRead(path: string): string | null {
+  try {
+    const hostPath = path.replace(/^\/proc\//, '/host/proc/').replace(/^\/sys\//, '/host/sys/')
+    if (hostPath !== path && fs.existsSync(hostPath)) {
+      return fs.readFileSync(hostPath, 'utf-8').trim()
+    }
+    return fs.readFileSync(path, 'utf-8').trim()
+  } catch {
+    return null
+  }
+}
+
 // Swap usage — Linux only
 async function readSwap(): Promise<{ total: number; used: number; perc: number } | null> {
+  const raw = tryRead('/proc/meminfo')
+  if (!raw) return null
   try {
-    const raw = fs.readFileSync('/proc/meminfo', 'utf-8')
     const parse = (key: string) => {
       const line = raw.split('\n').find(l => l.startsWith(key))
       return line ? parseInt(line.split(/\s+/)[1]) * 1024 : 0 // kB → bytes
@@ -264,8 +284,9 @@ async function readSwap(): Promise<{ total: number; used: number; perc: number }
 
 // System load averages — Linux only
 async function readLoadAverages(): Promise<{ load1: number; load5: number; load15: number } | null> {
+  const raw = tryRead('/proc/loadavg')
+  if (!raw) return null
   try {
-    const raw = fs.readFileSync('/proc/loadavg', 'utf-8').trim()
     const [load1, load5, load15] = raw.split(/\s+/).slice(0, 3).map(Number)
     return { load1, load5, load15 }
   } catch { return null }
