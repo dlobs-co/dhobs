@@ -167,10 +167,8 @@ services:
     restart: on-failure:5
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    entrypoint: ["/read-secrets.sh", "coolwsd"]
     volumes:
       - ./config/collabora/coolwsd-override.xml:/etc/coolwsd/coolwsd.d/homeforge-wopi.xml:ro
-      - ./config/scripts/read-secrets.sh:/read-secrets.sh:ro
     environment:
       # Only the Docker-internal hostname needed — Collabora callbacks use
       # wopi_callback_url (set in Nextcloud via occ) instead of the browser's WOPISrc.
@@ -178,10 +176,15 @@ services:
       - server_name=${HOMEFORGE_LAN_IP:-localhost}:9980
       - dictionaries=en_US
       - username=${COLLABORA_USERNAME}
-      - password_file=/run/secrets/collabora_password
+      - password=${COLLABORA_PASSWORD}
       - extra_params=--o:ssl.enable=false --o:ssl.termination=false
-    secrets:
-      - collabora_password
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9980/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging: *default-logging
     cap_add:
       - MKNOD
       - SYS_ADMIN
@@ -191,13 +194,6 @@ services:
       resources:
         limits:
           memory: 1536m
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9980/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    logging: *default-logging
 
   # Pin: :latest only (upstream only publishes :latest)
   theia:
