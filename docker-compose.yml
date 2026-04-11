@@ -1,4 +1,3 @@
-version: "3.8"
 services:
   # Pin: major.minor.patch (stable releases, safe to pin)
   jellyfin:
@@ -177,9 +176,9 @@ services:
       - dictionaries=en_US
       - username=${COLLABORA_USERNAME}
       - password_file=/run/secrets/collabora_password
+      - extra_params=--o:ssl.enable=false --o:ssl.termination=false
     secrets:
       - collabora_password
-      - extra_params=--o:ssl.enable=false --o:ssl.termination=false
     cap_add:
       - MKNOD
       - SYS_ADMIN
