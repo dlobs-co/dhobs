@@ -1,7 +1,6 @@
 FROM node:20-alpine
 
-# Install build dependencies for better-sqlite3 and docker/tar cli
-ent, restic
+# Install build dependencies for better-sqlite3, docker/tar client, restic
 RUN apk add --no-cache \
     python3 \
     make \
