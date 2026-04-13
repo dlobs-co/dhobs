@@ -58,3 +58,7 @@ php /var/www/html/occ config:app:set richdocuments public_wopi_url \
 # Trust Collabora hostname in Nextcloud
 php /var/www/html/occ config:system:set trusted_domains 3 \
     --value="collabora" || true
+
+# Trust own Docker hostname (Collabora → Nextcloud WOPI callbacks)
+php /var/www/html/occ config:system:set trusted_domains 5 \
+    --value="nextcloud" || true
