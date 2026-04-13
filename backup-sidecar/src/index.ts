@@ -3,7 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import { getDb } from './db'
 import { getInternalToken } from './crypto'
-import { runBackupJob } from './snapshot'
+import { runBackupJob, listSnapshots, restoreSnapshot } from './snapshot'
 import { runRestoreJob } from './restore'
 import { startScheduler } from './scheduler'
 
@@ -23,6 +23,15 @@ app.use((req, res, next) => {
 
 app.get('/health', (req, res) => {
   res.json({ ok: true })
+})
+
+app.get('/snapshots', (req, res) => {
+  try {
+    const snapshots = listSnapshots()
+    res.json(snapshots)
+  } catch (e) {
+    res.status(500).json({ error: String(e) })
+  }
 })
 
 app.get('/backups', (req, res) => {
