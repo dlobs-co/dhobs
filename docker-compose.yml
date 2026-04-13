@@ -665,9 +665,18 @@ services:
       - backend
       - database
       - frontend
+    environment:
+      - NODE_ENV=production
+      - BACKUP_PORT=3070
+      - SNAPSHOT_DIR=/backups
+      - SECURITY_DIR=/data/security
+      - DOCKER_HOST=unix:///var/run/docker-proxy.sock
+      - RESTIC_REPO=/data/backups/restic
+      - RESTIC_PASSWORD_FILE=/data/secrets/restic_password
     volumes:
       - socket-data:/var/run/docker-proxy.sock:ro
       - ./data/security:/data/security:ro
+      - ./data/secrets:/data/secrets:ro
       - ./data:/snapshots/dashboard:ro
       - ./data/jellyfin/config:/snapshots/jellyfin:ro
       - ./data/nextcloud/data:/snapshots/nextcloud:ro
@@ -675,14 +684,8 @@ services:
       - ./data/matrix/db:/snapshots/matrix:ro
       - ./data/vaultwarden:/snapshots/vaultwarden:ro
       - ./data/media:/snapshots/media:ro
-      - ./data/backups:/backups
+      - ./data/backups:/data/backups
       - backup-db:/app/data
-    environment:
-      - NODE_ENV=production
-      - BACKUP_PORT=3070
-      - SNAPSHOT_DIR=/backups
-      - SECURITY_DIR=/data/security
-      - DOCKER_HOST=unix:///var/run/docker-proxy.sock
     expose:
       - "3070"
     depends_on:

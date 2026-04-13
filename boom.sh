@@ -158,6 +158,12 @@ if [ ! -f ./data/secrets/mysql_root_password ]; then
         touch ./data/secrets/tailscale_authkey
         echo "   ℹ️  Tailscale auth key not set (empty file). Remote access disabled until configured."
     fi
+
+    # Restic backup password
+    if [ ! -f ./data/secrets/restic_password ]; then
+        openssl rand -hex 32 > ./data/secrets/restic_password
+        echo "   ✅ Generated Restic backup password"
+    fi
 fi
 
 # Fix: Ensure Security directory permissions
