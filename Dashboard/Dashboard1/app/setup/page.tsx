@@ -7,6 +7,7 @@ import { Input }  from '@/components/ui/input'
 import { Label }  from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { bytesToMnemonic, parseMnemonic, validateMnemonic } from '@/lib/mnemonic'
 
 type Step = 'collect' | 'confirm' | 'account' | 'done'
 
@@ -147,6 +148,7 @@ export default function SetupPage() {
 
   const [step,       setStep]       = useState<Step>('collect')
   const [entropyKey, setEntropyKey] = useState('')
+  const [mnemonic,   setMnemonic]   = useState<string[]>([])
   const [keyVisible, setKeyVisible] = useState(false)
   const [keySaved,   setKeySaved]   = useState(false)
   const [copied,     setCopied]     = useState(false)
@@ -155,6 +157,7 @@ export default function SetupPage() {
   const [confirm,    setConfirm]    = useState('')
   const [error,      setError]      = useState('')
   const [loading,    setLoading]    = useState(false)
+  const [showHex,    setShowHex]    = useState(false)
 
   // Redirect away if setup is already complete
   useEffect(() => {
@@ -167,12 +170,15 @@ export default function SetupPage() {
   // ── Step 1 complete: key derived from mouse movements ──────────────────────
   function handleEntropyComplete(key: string) {
     setEntropyKey(key)
+    // Derive 12-word mnemonic from first 16 bytes of the 64-byte key
+    const keyBytes = new Uint8Array(key.match(/.{2}/g)!.map(b => parseInt(b, 16)))
+    setMnemonic(bytesToMnemonic(keyBytes))
     setStep('confirm')
   }
 
   // ── Copy key to clipboard ──────────────────────────────────────────────────
   async function copyKey() {
-    await navigator.clipboard.writeText(entropyKey)
+    await navigator.clipboard.writeText(mnemonic.join(' '))
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -271,32 +277,59 @@ export default function SetupPage() {
         {step === 'confirm' && (
           <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-2xl">
             <CardHeader>
-              <CardTitle className="text-base">Save Your Recovery Key</CardTitle>
+              <CardTitle className="text-base">Save Your Recovery Phrase</CardTitle>
               <CardDescription>
-                This 128-character key is the master secret for your HomeForge installation.
-                It encrypts all application secrets. Store it in a password manager now —
-                it cannot be shown again.
+                These 12 words are your recovery phrase. Write them down in order and store them safely.
+                You can recover your entire HomeForge installation from these words alone.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              {/* Key display */}
-              <div className="relative">
-                <div
-                  className={cn(
-                    'font-mono text-xs break-all rounded-lg border border-border/50 p-3 leading-relaxed select-all transition-all',
-                    keyVisible ? 'text-foreground bg-muted/30' : 'text-transparent select-none',
-                    'relative overflow-hidden'
-                  )}
-                  style={{ minHeight: '4.5rem' }}
-                >
-                  {entropyKey}
-                  {!keyVisible && (
-                    <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-muted/60 backdrop-blur-sm">
-                      <span className="text-xs text-muted-foreground">Click "Reveal" to show your key</span>
-                    </div>
-                  )}
-                </div>
+              {/* 12-word mnemonic grid */}
+              <div className="grid grid-cols-2 gap-2">
+                {mnemonic.map((word, i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      'flex items-center gap-2 rounded-lg border border-border/50 px-3 py-2 bg-muted/20 font-mono text-sm',
+                      keyVisible ? '' : 'select-none'
+                    )}
+                  >
+                    <span className="text-xs text-muted-foreground w-6 shrink-0">{i + 1}.</span>
+                    <span className={cn(
+                      'text-foreground',
+                      !keyVisible && 'blur-sm'
+                    )}>{word}</span>
+                  </div>
+                ))}
               </div>
+
+              {/* Full phrase as copyable text */}
+              {keyVisible && (
+                <div className="font-mono text-xs text-muted-foreground bg-muted/30 rounded-lg border border-border/50 p-3 break-words select-all">
+                  {mnemonic.join(' ')}
+                </div>
+              )}
+
+              {/* Hex key toggle */}
+              <details className="text-xs">
+                <summary
+                  className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => setShowHex(v => !v)}
+                >
+                  {showHex ? 'Hide' : 'Show'} raw 128-character hex key
+                </summary>
+                <div className="mt-2 relative">
+                  <div
+                    className={cn(
+                      'font-mono text-xs break-all rounded-lg border border-border/50 p-3 leading-relaxed select-all',
+                      keyVisible ? 'text-foreground bg-muted/30' : 'text-transparent select-none'
+                    )}
+                    style={{ minHeight: '4.5rem' }}
+                  >
+                    {entropyKey}
+                  </div>
+                </div>
+              </details>
 
               {/* Actions */}
               <div className="flex gap-2">
@@ -328,8 +361,8 @@ export default function SetupPage() {
                   className="mt-0.5 accent-primary"
                 />
                 <span className="text-sm text-muted-foreground leading-snug">
-                  I have saved my recovery key in a password manager or secure location.
-                  I understand it cannot be recovered if lost.
+                  I have saved my 12-word recovery phrase in a secure location.
+                  I understand my HomeForge cannot be recovered if lost.
                 </span>
               </label>
 
