@@ -1,10 +1,11 @@
 # 42 — Traefik Migration (Issue #202)
 
-**Date:** April 12, 2026  
+**Date:** April 12-13, 2026  
 **Author:** Basil Suhail  
 **Related Issue:** #202  
 **Branch:** `feat/traefik-migration`  
-**Status:** Awaiting user testing
+**PR:** #204  
+**Status:** ✅ Merged to main (`f29f5b8`)
 
 ---
 
@@ -22,74 +23,95 @@ HomeForge used a manually-configured `nginx.conf` with 500+ lines of static prox
 
 ### 1. Removed Nginx
 - Deleted `nginx` service from `docker-compose.yml`
-- Nginx config (`config/nginx/nginx.conf`) preserved in git for rollback
+- Nginx config preserved in git for rollback
 - All port mappings (8081-8096, 443, etc.) removed from nginx
 
 ### 2. Added Traefik Service
 ```yaml
 traefik:
-  image: traefik:v3.2
+  image: traefik:latest
   ports:
-    - '80:80'      # HTTP → HTTPS redirect
-    - '443:443'    # HTTPS for all services
-    - '8080:8080'  # Traefik dashboard (debug)
+    - '80:80'
+    - '443:443'
+    - '8080:8080'  # Dashboard (debug)
   volumes:
-    - socket-data:/var/run/docker.sock:ro  # Uses socket proxy
+    - socket-data:/var/run/docker.sock:ro
     - ./config/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
     - ./config/traefik/acme.json:/acme.json
-    - ./config/traefik/dynamic:/etc/traefik/dynamic:ro
 ```
 
 ### 3. Traefik Configuration
 - **`config/traefik/traefik.yml`**: Static config — Docker provider, HTTP→HTTPS redirect, JSON logging
-- **`config/traefik/dynamic/middlewares.yml`**: Dynamic config — security headers, compression
-- **`config/traefik/acme.json`**: Empty cert store (will auto-generate self-signed on first run)
+- **`config/traefik/dynamic/middlewares.yml`**: Security headers, compression
+- **`config/traefik/acme.json`**: Empty cert store (auto-generates self-signed on first run)
 
-### 4. Service Labels (15 services routed)
+### 4. Socket Proxy Update
+- Expanded `ALLOWED_ACCESS` to include all Docker API endpoints Traefik needs (NETWORKS, VOLUMES, SYSTEM, etc.)
+- Traefik connects via `DOCKER_HOST=tcp://socket-proxy:2375`
 
-| Service | URL | Port |
-|---|---|---|
-| Dashboard | `dashboard.<LAN-IP>.nip.io` | 3069 |
-| Dashboard WS | `dashboard.<LAN-IP>.nip.io/ws-terminal` | 3070 |
-| Jellyfin | `jellyfin.<LAN-IP>.nip.io` | 8096 |
-| Nextcloud | `nextcloud.<LAN-IP>.nip.io` | 80 |
-| Collabora | `collabora.<LAN-IP>.nip.io` | 9980 |
-| Theia | `theia.<LAN-IP>.nip.io` | 3000 |
-| Synapse | `synapse.<LAN-IP>.nip.io` | 8008 |
-| Element | `element.<LAN-IP>.nip.io` | 80 |
-| Vaultwarden | `vaultwarden.<LAN-IP>.nip.io` | 80 + WS 3012 |
-| Open-WebUI | `webui.<LAN-IP>.nip.io` | 8080 |
-| Kiwix | `kiwix.<LAN-IP>.nip.io` | 8080 |
-| Kiwix Manager | `kiwix-manager.<LAN-IP>.nip.io` | 80 |
-| OpenVPN UI | `openvpn.<LAN-IP>.nip.io` | 8080 |
-| Traefik Dashboard | `traefik.<LAN-IP>.nip.io` | 8080 |
+### 5. Service Labels (10 services routed)
 
-**Note:** Using `nip.io` wildcards for DNS — no local DNS server needed. `192.168.1.100.nip.io` resolves to `192.168.1.100`.
+| Service | Traefik URL | Direct Port |
+|---------|-------------|-------------|
+| Dashboard | `dashboard.<IP>.nip.io` | 3069 |
+| Jellyfin | `jellyfin.<IP>.nip.io` | 8096 |
+| Nextcloud | `nextcloud.<IP>.nip.io` | 8081 |
+| Theia | `theia.<IP>.nip.io` | 3030 |
+| Element | `element.<IP>.nip.io` | 8082 |
+| Vaultwarden | `vaultwarden.<IP>.nip.io` | 8083 |
+| Open-WebUI | `webui.<IP>.nip.io` | 8085 |
+| Kiwix Manager | `kiwix-manager.<IP>.nip.io` | 8086 |
+| Collabora | `collabora.<IP>.nip.io` | 9980 |
+| OpenVPN UI | `openvpn.<IP>.nip.io` | 8090 |
 
-### 5. Network Changes
-- **Jellyfin**: Added `frontend` network (was `backend` only)
-- **Synapse**: Added `frontend` network (was `backend` + `database`)
-- All other routed services already on `frontend`
+**Note:** Direct ports kept for dashboard iframe embedding (avoids mixed-content/CSP issues).
 
-### 6. Updated `boom.sh`
-- Added port 443 conflict check (Traefik needs it)
-
-### 7. Rollback Script
+### 6. Rollback Script
 - Created `scripts/rollback-traefik.sh`
 - Restores nginx from git, stops traefik, restarts compose
 
+### 7. Updated `boom.sh`
+- Added port 443 conflict check (Traefik needs it)
+- Fixed `lsof` false positive on macOS (changed `-i :443` to `-iTCP:443`)
+
 ---
 
-## Testing Checklist
+## Issues Found & Fixed During Testing
 
-- [ ] `docker compose up -d` starts without errors
-- [ ] Traefik container is healthy
-- [ ] Dashboard accessible at `https://dashboard.<LAN-IP>.nip.io`
-- [ ] All 14 services accessible via their `.<LAN-IP>.nip.io` URLs
-- [ ] HTTP → HTTPS redirect works
-- [ ] WebSocket works (Dashboard terminal, Vaultwarden notifications)
-- [ ] Nextcloud Office (Collabora) still works
-- [ ] Rollback script tested: `./scripts/rollback-traefik.sh`
+### Bug 1: Traefik `PathPrefix('/')` caught ALL traffic
+**Symptom:** Every request routed to dashboard login page → React Error #418  
+**Root cause:** Dashboard rule `Host(...) || PathPrefix('/')` — `PathPrefix('/')` matches everything  
+**Fix:** Removed catch-all. Created separate `dashboard-root` router with lowest priority (`1`).
+
+### Bug 2: Nextcloud OVERWRITEHOST redirected to LAN IP
+**Symptom:** `localhost:8081` → 302 → `http://192.168.178.108:8081/login` → timeout  
+**Root cause:** `OVERWRITEHOST=192.168.178.108:8081` env var in docker-compose.yml  
+**Fix:** Removed `OVERWRITEHOST` and `OVERWRITEPROTOCOL` env vars.
+
+### Bug 3: Collabora server_name used LAN IP
+**Symptom:** Documents never loaded — browser got `http://192.168.178.108:9980` URLs  
+**Root cause:** `server_name=${HOMEFORGE_LAN_IP:-localhost}:9980` resolved to LAN IP  
+**Fix:** Set `server_name=localhost:9980` explicitly.
+
+### Bug 4: setup-office.sh hardcoded LAN IP in public_wopi_url
+**Symptom:** Container restart re-broke WOPI URLs  
+**Root cause:** `setup-office.sh` used `${HOMEFORGE_LAN_IP}` to build `public_wopi_url`  
+**Fix:** Hardcoded `public_wopi_url` to `http://localhost:9980` in script.
+
+### Bug 5: Nextcloud missing from trusted_domains
+**Symptom:** Document viewer timed out — Collabora couldn't fetch files  
+**Root cause:** `wopi_callback_url=http://nextcloud:80` but `nextcloud` wasn't in trusted_domains  
+**Fix:** Added `trusted_domains[5]=nextcloud` to `setup-office.sh`.
+
+### Bug 6: OpenVPN-UI crash (exit 127)
+**Symptom:** Container in restart loop  
+**Root cause:** Entrypoint pointed to `/opt/openvpn-ui/start.sh` (doesn't exist), actual is `/opt/start.sh`  
+**Fix:** Removed custom entrypoint, uses image default.
+
+### Bug 7: Element Matrix homeserver pointed to LAN IP
+**Symptom:** Element couldn't connect to Synapse  
+**Root cause:** `element-config.json` used `http://192.168.178.108:8008`  
+**Fix:** Changed to `http://localhost:8008` (Synapse port exposed in docker-compose).
 
 ---
 
@@ -98,9 +120,8 @@ traefik:
 ### For Existing Users
 1. Stop current stack: `docker compose down`
 2. Pull branch: `git pull`
-3. Create Traefik config: files already in `config/traefik/`
-4. Start: `./boom.sh` or `docker compose up -d`
-5. Access services via `https://<service>.<LAN-IP>.nip.io`
+3. Start: `./boom.sh` or `docker compose up -d`
+4. Access services via `https://<service>.<LAN-IP>.nip.io`
 
 ### Port Changes
 | Old (Nginx) | New (Traefik) |
@@ -133,9 +154,12 @@ Dashboard stays at `:3069` (direct port for initial access).
 
 ---
 
-## Future Work
+## Commits
 
-1. **Local CA (mkcert)**: Replace self-signed certs with trusted LAN CA
-2. **Let's Encrypt**: For users with public domains
-3. **Middleware chain**: Add rate limiting, auth middleware for sensitive services
-4. **Dashboard integration**: Show Traefik status + routing table in UI
+| Commit | Description |
+|--------|-------------|
+| `8a43e7d` | Initial Traefik migration |
+| `cda8e73` | Remove OVERWRITEHOST causing Nextcloud redirect |
+| `131ac3b` | Fix Collabora server_name to localhost:9980 |
+| `04684ac` | Fix WOPI setup-office.sh hardcoded LAN IP |
+| `ac5313e` | Add nextcloud to trusted_domains for WOPI callbacks |
