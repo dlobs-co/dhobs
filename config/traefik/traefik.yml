@@ -1,0 +1,41 @@
+# Traefik Static Configuration
+# Auto-discovers services via Docker labels
+
+api:
+  dashboard: true
+  insecure: true  # Enable for local debugging only — disable in production
+
+entryPoints:
+  web:
+    address: ":80"
+    # HTTP → HTTPS redirect
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+
+  websecure:
+    address: ":443"
+
+providers:
+  docker:
+    endpoint: "tcp://socket-proxy:2375"
+    exposedByDefault: false  # Only route services with traefik.enable=true
+    watch: true
+
+  # Dynamic config file (middlewares, TLS options)
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+# No certificates yet — use self-signed for local LAN
+# Later: configure ACME with Let's Encrypt or local CA (mkcert)
+
+log:
+  level: INFO
+  format: json
+
+accessLog:
+  format: json
