@@ -57,9 +57,10 @@ fi
 
 # Sync Matrix secrets into homeserver.yaml template
 LAN_IP=$(grep "^HOMEFORGE_LAN_IP=" .env 2>/dev/null | cut -d'=' -f2- || echo "localhost")
-REG_SECRET=$(grep "^MATRIX_REGISTRATION_SECRET=" .env 2>/dev/null | cut -d'=' -f2- || echo "dummy")
-MAC_SECRET=$(grep "^MATRIX_MACAROON_SECRET_KEY=" .env 2>/dev/null | cut -d'=' -f2- || echo "dummy")
-FORM_SECRET=$(grep "^MATRIX_FORM_SECRET=" .env 2>/dev/null | cut -d'=' -f2- || echo "dummy")
+REG_SECRET=$(grep "^MATRIX_REGISTRATION_SECRET=" .env 2>/dev/null | cut -d'=' -f2-)
+MAC_SECRET=$(grep "^MATRIX_MACAROON_SECRET_KEY=" .env 2>/dev/null | cut -d'=' -f2-)
+FORM_SECRET=$(grep "^MATRIX_FORM_SECRET=" .env 2>/dev/null | cut -d'=' -f2-)
+DB_PASS=$(cat ./data/secrets/mysql_password 2>/dev/null || echo "dummy")
 
 cat <<EOF > ./config/matrix/homeserver.yaml.tpl
 server_name: "localhost"
@@ -94,7 +95,7 @@ cat <<EOF > ./config/matrix/element-config.json
 {
     "default_server_config": {
         "m.homeserver": {
-            "base_url": "http://$LAN_IP:8008",
+            "base_url": "http://localhost:8008",
             "server_name": "localhost"
         }
     },
@@ -161,9 +162,14 @@ chmod 700 ./data/security
 # 4. PORT CONFLICT CHECK
 # ──────────────────────────────────────────────
 if command -v lsof &> /dev/null; then
-    if lsof -i :3069 -sTCP:LISTEN &>/dev/null 2>&1; then
+    if lsof -iTCP:3069 -sTCP:LISTEN -P -n &>/dev/null 2>&1; then
         echo "⚠️  Port 3069 is already in use."
         echo "   Is another instance of Project S running?"
+        exit 1
+    fi
+    if lsof -iTCP:443 -sTCP:LISTEN -P -n &>/dev/null 2>&1; then
+        echo "⚠️  Port 443 is already in use."
+        echo "   Traefik needs port 443 for HTTPS."
         exit 1
     fi
 fi

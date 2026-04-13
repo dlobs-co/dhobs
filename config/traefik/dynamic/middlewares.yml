@@ -1,0 +1,21 @@
+# Traefik Dynamic Configuration
+# Middlewares, TLS options, etc.
+
+http:
+  middlewares:
+    # Security headers for all services
+    security-headers:
+      headers:
+        frameDeny: false
+        contentTypeNosniff: true
+        browserXssFilter: true
+        customResponseHeaders:
+          X-Forwarded-Proto: "https"
+
+    # Compression
+    compress:
+      compress:
+        excludedContentTypes:
+          - "video/*"
+          - "audio/*"
+          - "image/*"

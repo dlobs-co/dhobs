@@ -4,7 +4,10 @@ services:
     image: jellyfin/jellyfin:10.10.6
     container_name: project-s-jellyfin
     networks:
+      - frontend
       - backend
+    ports:
+      - '8096:8096'
     volumes:
       - ./data/jellyfin/config:/config
       - ./data/jellyfin/cache:/cache
@@ -25,6 +28,12 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jellyfin.rule=Host(`jellyfin.${HOMEFORGE_LAN_IP:-localhost}.nip.io`)"
+      - "traefik.http.routers.jellyfin.entrypoints=websecure"
+      - "traefik.http.routers.jellyfin.tls=true"
+      - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
 
   # Secure Docker Socket Proxy
   # Prevents containers from having full root access to the host via the socket.
@@ -38,7 +47,25 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
-      - ALLOWED_ACCESS=CONTAINERS=1,EVENTS=1,IMAGES=1,INFO=1,POST=1
+      # Allow all Docker API endpoints for Traefik and internal services
+      - CONTAINERS=1
+      - EVENTS=1
+      - IMAGES=1
+      - INFO=1
+      - POST=1
+      - NETWORKS=1
+      - PLUGINS=1
+      - VOLUMES=1
+      - TASKS=1
+      - SWARM=1
+      - SECRETS=1
+      - CONFIGS=1
+      - NODES=1
+      - SYSTEM=1
+      - AUTH=1
+      - DISTRIBUTION=1
+      - BUILD=1
+      - COMMIT=1
     # For Dashboard and OpenVPN-UI we restrict to read-only + POST (exec)
     # For Theia we need full access, so it will use the raw socket.
     # For Backup Sidecar we need CONTAINERS + EVENTS + POST (pause/unpause).
@@ -78,6 +105,27 @@ services:
       retries: 3
       start_period: 30s
     logging: *default-logging
+    labels:
+      - "traefik.enable=true"
+      # Dashboard — explicit host only (no PathPrefix catch-all)
+      - "traefik.http.routers.dashboard.rule=Host(`dashboard.${HOMEFORGE_LAN_IP:-localhost}.nip.io`)"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls=true"
+      - "traefik.http.routers.dashboard.service=dashboard"
+      - "traefik.http.services.dashboard.loadbalancer.server.port=3069"
+      # Dashboard WebSocket (terminal)
+      - "traefik.http.routers.dashboard-ws.rule=Host(`dashboard.${HOMEFORGE_LAN_IP:-localhost}.nip.io`) && Path(`/ws-terminal`)"
+      - "traefik.http.routers.dashboard-ws.entrypoints=websecure"
+      - "traefik.http.routers.dashboard-ws.tls=true"
+      - "traefik.http.routers.dashboard-ws.service=dashboard"
+      - "traefik.http.routers.dashboard-ws.middlewares=dashboard-ws-mw"
+      - "traefik.http.middlewares.dashboard-ws-mw.headers.customrequestheaders.X-Forwarded-Proto=https"
+      # Catch-all router — root path goes to dashboard (lowest priority)
+      - "traefik.http.routers.dashboard-root.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.dashboard-root.entrypoints=websecure"
+      - "traefik.http.routers.dashboard-root.tls=true"
+      - "traefik.http.routers.dashboard-root.service=dashboard"
+      - "traefik.http.routers.dashboard-root.priority=1"
 
   # Pin: major.minor (migration between major versions is one-way)
   db:
@@ -116,6 +164,8 @@ services:
     networks:
       - backend
       - database
+    ports:
+      - '8081:80'
     restart: on-failure:5
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -156,13 +206,26 @@ services:
       retries: 3
       start_period: 60s
     logging: *default-logging
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nextcloud.rule=Host(`nextcloud.${HOMEFORGE_LAN_IP:-localhost}.nip.io`)"
+      - "traefik.http.routers.nextcloud.entrypoints=websecure"
+      - "traefik.http.routers.nextcloud.tls=true"
+      - "traefik.http.services.nextcloud.loadbalancer.server.port=80"
+      # Nextcloud DAV redirects
+      - "traefik.http.middlewares.nextcloud-dav.redirectregex.regex=^https://(.*)/.well-known/(card|cal)dav"
+      - "traefik.http.middlewares.nextcloud-dav.redirectregex.replacement=https://$${1}/remote.php/dav"
+      - "traefik.http.middlewares.nextcloud-dav.redirectregex.permanent=true"
 
   # Pin: full version (known compatibility with Nextcloud 30)
   collabora:
     image: collabora/code:24.04.10.2.1
     container_name: project-s-collabora
     networks:
+      - frontend
       - backend
+    ports:
+      - '9980:9980'
     restart: on-failure:5
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -193,13 +256,23 @@ services:
       resources:
         limits:
           memory: 1536m
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.collabora.rule=Host(`collabora.${HOMEFORGE_LAN_IP:-localhost}.nip.io`)"
+      - "traefik.http.routers.collabora.entrypoints=websecure"
+      - "traefik.http.routers.collabora.tls=true"
+      - "traefik.http.services.collabora.loadbalancer.server.port=9980"
+      - "traefik.http.middlewares.collabora.headers.customrequestheaders.X-Forwarded-Proto=https"
 
   # Pin: :latest only (upstream only publishes :latest)
   theia:
     image: ghcr.io/eclipse-theia/theia-ide/theia-ide:latest  # Theia only publishes :latest on GHCR
     container_name: project-s-theia
     networks:
+      - frontend
       - backend
+    ports:
+      - '3030:3000'
     # Theia requires root + privileged for Docker integration features
     # (container management, terminal with Docker access)
     user: root
@@ -223,6 +296,13 @@ services:
       retries: 3
       start_period: 30s
     logging: *default-logging
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.theia.rule=Host(`theia.${HOMEFORGE_LAN_IP:-localhost}.nip.io`)"
+      - "traefik.http.routers.theia.entrypoints=websecure"
+      - "traefik.http.routers.theia.tls=true"
+      - "traefik.http.services.theia.loadbalancer.server.port=3000"
+      - "traefik.http.middlewares.theia.headers.customrequestheaders.X-Forwarded-Proto=https"
 
   # Pin: major.minor (migration between major versions is one-way)
   synapse-db:
@@ -253,8 +333,11 @@ services:
     image: matrixdotorg/synapse:v1.120.0
     container_name: project-s-matrix-server
     networks:
+      - frontend
       - backend
       - database
+    ports:
+      - '8008:8008'
     depends_on:
       - synapse-db
     volumes:
@@ -284,6 +367,12 @@ services:
       retries: 3
       start_period: 30s
     logging: *default-logging
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.synapse.rule=Host(`synapse.${HOMEFORGE_LAN_IP:-localhost}.nip.io`)"
+      - "traefik.http.routers.synapse.entrypoints=websecure"
+      - "traefik.http.routers.synapse.tls=true"
+      - "traefik.http.services.synapse.loadbalancer.server.port=8008"
 
   # Pin: full version (cosmetic updates only, safe to follow)
   element:
@@ -291,6 +380,8 @@ services:
     container_name: project-s-matrix-client
     networks:
       - frontend
+    ports:
+      - '8082:80'
     volumes:
       - ./config/matrix/element-config.json:/app/config.json:ro
     restart: unless-stopped
@@ -301,6 +392,12 @@ services:
       retries: 3
       start_period: 15s
     logging: *default-logging
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.element.rule=Host(`element.${HOMEFORGE_LAN_IP:-localhost}.nip.io`)"
+      - "traefik.http.routers.element.entrypoints=websecure"
+      - "traefik.http.routers.element.tls=true"
+      - "traefik.http.services.element.loadbalancer.server.port=80"
 
   # Pin: full version (database schema changes between minors)
   vaultwarden:
@@ -308,6 +405,8 @@ services:
     container_name: project-s-vaultwarden
     networks:
       - backend
+    ports:
+      - '8083:80'
     volumes:
       - ./data/vaultwarden:/data
     environment:
@@ -320,6 +419,12 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.vaultwarden.rule=Host(`vaultwarden.${HOMEFORGE_LAN_IP:-localhost}.nip.io`)"
+      - "traefik.http.routers.vaultwarden.entrypoints=websecure"
+      - "traefik.http.routers.vaultwarden.tls=true"
+      - "traefik.http.services.vaultwarden.loadbalancer.server.port=80"
 
   # Pin: full version (API changes between minors)
   open-webui:
@@ -328,6 +433,8 @@ services:
     networks:
       - frontend
       - backend
+    ports:
+      - '8085:8080'
     entrypoint: ["/bin/sh", "-c", "if [ -f /read-secrets.sh ]; then . /read-secrets.sh; fi && exec bash start.sh"]
     volumes:
       - ./data/open-webui:/app/backend/data
@@ -360,6 +467,12 @@ services:
       retries: 3
       start_period: 60s
     logging: *default-logging
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.openwebui.rule=Host(`webui.${HOMEFORGE_LAN_IP:-localhost}.nip.io`)"
+      - "traefik.http.routers.openwebui.entrypoints=websecure"
+      - "traefik.http.routers.openwebui.tls=true"
+      - "traefik.http.services.openwebui.loadbalancer.server.port=8080"
 
   # Pin: full version (model compatibility between versions)
   ollama:
@@ -393,6 +506,8 @@ services:
     container_name: project-s-kiwix-reader
     networks:
       - backend
+    ports:
+      - '8087:8080'
     volumes:
       - ./data/kiwix:/data
     entrypoint: ["sh", "-c"]
@@ -412,6 +527,12 @@ services:
       retries: 3
       start_period: 30s
     logging: *default-logging
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kiwix.rule=Host(`kiwix.${HOMEFORGE_LAN_IP:-localhost}.nip.io`)"
+      - "traefik.http.routers.kiwix.entrypoints=websecure"
+      - "traefik.http.routers.kiwix.tls=true"
+      - "traefik.http.services.kiwix.loadbalancer.server.port=8080"
 
   # Pin: full version (cosmetic, stable)
   kiwix-manager:
@@ -420,6 +541,8 @@ services:
     user: "${UID:-1000}:${GID:-1000}"
     networks:
       - frontend
+    ports:
+      - '8086:80'
     volumes:
       - ./data/kiwix:/srv
       - ./data/filebrowser/database.db:/database.db
@@ -432,6 +555,12 @@ services:
       retries: 3
       start_period: 15s
     logging: *default-logging
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kiwix-manager.rule=Host(`kiwix-manager.${HOMEFORGE_LAN_IP:-localhost}.nip.io`)"
+      - "traefik.http.routers.kiwix-manager.entrypoints=websecure"
+      - "traefik.http.routers.kiwix-manager.tls=true"
+      - "traefik.http.services.kiwix-manager.loadbalancer.server.port=80"
 
   # Pin: :latest (stable, no breaking changes in years)
   openvpn:
@@ -462,20 +591,18 @@ services:
     networks:
       - frontend
       - backend
+    ports:
+      - '8090:8080'
     privileged: true
     depends_on:
       - openvpn
     environment:
       - OPENVPN_ADMIN_USERNAME=${VPN_ADMIN_USERNAME:-admin}
-      - OPENVPN_ADMIN_PASSWORD_FILE=/run/secrets/vpn_admin_password
-    secrets:
-      - vpn_admin_password
-    entrypoint: ["/bin/sh", "-c", "if [ -f /read-secrets.sh ]; then . /read-secrets.sh; fi && exec /opt/openvpn-ui/start.sh"]
+      - OPENVPN_ADMIN_PASSWORD=${VPN_ADMIN_PASSWORD:-admin}
     volumes:
       - ./data/vpn:/etc/openvpn
       - ./data/vpn/db:/opt/openvpn-ui/db
       - ./data/vpn/pki:/usr/share/easy-rsa/pki
-      - ./config/scripts/read-secrets.sh:/read-secrets.sh:ro
       - socket-data:/var/run/docker-proxy.sock:ro
     restart: unless-stopped
     healthcheck:
@@ -485,41 +612,50 @@ services:
       retries: 3
       start_period: 15s
     logging: *default-logging
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.openvpn.rule=Host(`openvpn.${HOMEFORGE_LAN_IP:-localhost}.nip.io`)"
+      - "traefik.http.routers.openvpn.entrypoints=websecure"
+      - "traefik.http.routers.openvpn.tls=true"
+      - "traefik.http.services.openvpn.loadbalancer.server.port=8080"
 
-  # Pin: alpine (stable, security patches only)
-  nginx:
-    image: nginx:alpine
-    container_name: project-s-nginx
+  # Traefik Reverse Proxy — auto-discovers services via Docker labels
+  # Replaces manual nginx.conf with zero-config routing
+  traefik:
+    image: traefik:latest
+    container_name: project-s-traefik
+    restart: unless-stopped
     networks:
       - frontend
       - backend
     ports:
+      - '80:80'
       - '443:443'
-      - '8088:80'
-      - '8081:8081'
-      - '8082:8082'
-      - '8083:8083'
-      - '8085:8085'
-      - '8086:8086'
-      - '8087:8087'
-      - '8090:8090'
-      - '8096:8096'
-      - '9980:9980'
-      - '3030:3030'
-      - '8008:8008'
+      - '8080:8080'  # Traefik Dashboard (debug only, restrict in production)
     volumes:
-      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./config/nginx/ssl:/etc/nginx/ssl:ro
+      - ./config/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./config/traefik/acme.json:/acme.json
+      - ./config/traefik/dynamic:/etc/traefik/dynamic:ro
+    environment:
+      - DOCKER_HOST=tcp://socket-proxy:2375
+      - HOMEFORGE_LAN_IP=${HOMEFORGE_LAN_IP:-localhost}
     depends_on:
       - dashboard
-    restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-check-certificate", "--spider", "-q", "https://localhost/nginx-health"]
+      test: ["CMD", "wget", "--no-check-certificate", "--spider", "-q", "http://localhost:8080/ping"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
     logging: *default-logging
+    labels:
+      - "traefik.enable=true"
+      # Traefik dashboard UI
+      - "traefik.http.routers.traefik.rule=Host(`traefik.${HOMEFORGE_LAN_IP:-localhost}.nip.io`)"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls=true"
+      - "traefik.http.services.traefik.loadbalancer.server.port=8080"
 
   homeforge-backup:
     build:

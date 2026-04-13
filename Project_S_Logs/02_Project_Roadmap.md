@@ -403,8 +403,8 @@
 * Priority Critical
 * Duration 4 days
 * Owner Saad Shafique
-* Status Completed
-* Notes Nginx integrated as reverse proxy (Log 08).
+* Status Completed → Migrated to Traefik (Log 42, Issue #202)
+* Notes Nginx integrated as reverse proxy (Log 08). Migrated to Traefik auto-discovery (Log 42) — zero-config routing, Docker label-based service detection.
 
 ### Task 40 Integrate Git and Gitea Version Control
 * Category Phase 1 The Basics
@@ -621,3 +621,17 @@
 * Owner Saad Shafique
 * Status Not Started
 * Notes Tag this commit as Project S v0.1.0 beta in Gitea
+
+---
+
+## v1.0 Roadmap Additions (April 2026)
+
+### Task 61 Traefik Auto-Discovery Migration
+* Category Infrastructure Modernization
+* Description Replace manual Nginx configuration with Traefik reverse proxy. Use Docker labels for zero-config service routing. HTTP→HTTPS redirect, self-signed certs initially.
+* Dependencies Issue #202, Log 42
+* Priority Critical (v1.0 blocker)
+* Duration 2 days
+* Owner Basil Suhail
+* Status In Progress — Awaiting user testing
+* Notes Branch: `feat/traefik-migration`. Rollback script included (`scripts/rollback-traefik.sh`).
