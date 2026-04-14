@@ -259,12 +259,12 @@ export function BackupSection() {
           <div className="space-y-4">
             <div>
               <SectionHeader title="Create New Snapshot" />
-              <div className="bg-secondary/5 rounded-lg p-3 relative overflow-hidden group border border-border/50">
+              <div className="relative overflow-hidden group">
                 <div className="absolute -right-4 -top-4 opacity-[0.02] group-hover:opacity-[0.04] transition-opacity">
                   <Database className="w-32 h-32" />
                 </div>
                 
-                <div className="relative z-10 space-y-4">
+                <div className="relative z-10 space-y-4 pt-1">
                   <p className="text-[11px] text-foreground/50 max-w-md leading-relaxed">
                     Trigger a manual system-wide snapshot. Services will be briefly paused to ensure data consistency.
                   </p>
@@ -405,7 +405,7 @@ export function BackupSection() {
             </button>
           </div>
 
-          <div className="bg-secondary/5 rounded-lg border border-border/50 overflow-hidden">
+          <div className="overflow-hidden">
             {/* Empty State */}
             {!isLoading && backups.length === 0 && activeTab === 'history' && (
               <div className="flex flex-col items-center justify-center py-12 px-6 text-center space-y-3">
