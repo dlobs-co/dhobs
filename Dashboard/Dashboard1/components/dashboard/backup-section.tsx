@@ -161,13 +161,24 @@ export function BackupSection() {
   }
 
   const toggleService = (svc: string) => {
-    if (svc === 'all') { setSelectedServices(['all']); return }
+    if (svc === 'all') {
+      if (selectedServices.includes('all')) {
+        setSelectedServices([])
+      } else {
+        setSelectedServices(['all'])
+      }
+      return
+    }
     const next = selectedServices.filter(s => s !== 'all')
     if (next.includes(svc)) {
-      const filtered = next.filter(s => s !== svc)
-      setSelectedServices(filtered.length === 0 ? ['all'] : filtered)
+      setSelectedServices(next.filter(s => s !== svc))
     } else {
-      setSelectedServices([...next, svc])
+      const updated = [...next, svc]
+      if (updated.length === availableServices.length) {
+        setSelectedServices(['all'])
+      } else {
+        setSelectedServices(updated)
+      }
     }
   }
 
@@ -270,16 +281,19 @@ export function BackupSection() {
                   </p>
 
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/30">Target Services</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/30">Target Services</span>
+                    <div className="flex flex-wrap gap-1.5">
                       <button 
                         onClick={() => toggleService('all')}
-                        className="text-[9px] text-emerald-400/60 hover:text-emerald-400 font-bold uppercase"
+                        className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-tight border transition-all ${
+                          selectedServices.includes('all')
+                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                            : 'bg-secondary/10 text-foreground/30 border-border hover:border-emerald-500/20'
+                        }`}
                       >
                         {selectedServices.includes('all') ? 'Deselect All' : 'Select All'}
                       </button>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
+                      <div className="w-[1px] h-4 bg-border/50 mx-0.5 self-center" />
                       {['dashboard', 'jellyfin', 'nextcloud', 'mariadb', 'matrix', 'vaultwarden'].map(svc => {
                         const isSelected = selectedServices.includes('all') || selectedServices.includes(svc)
                         return (
@@ -315,8 +329,8 @@ export function BackupSection() {
                   <div className="flex items-center gap-3 pt-1">
                     <button
                       onClick={handleBackup}
-                      disabled={backingUp || backups.some(b => b.status === 'in_progress')}
-                      className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-40 text-emerald-400 border border-emerald-500/20 rounded-md font-bold text-[11px] uppercase tracking-wider transition-all active:scale-95"
+                      disabled={backingUp || backups.some(b => b.status === 'in_progress') || selectedServices.length === 0}
+                      className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-20 text-emerald-400 border border-emerald-500/20 rounded-md font-bold text-[11px] uppercase tracking-wider transition-all active:scale-95"
                     >
                       {backingUp ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
                       {backingUp ? 'Capturing...' : 'Start Backup'}
