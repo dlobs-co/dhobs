@@ -181,6 +181,18 @@ When Tailscale is configured, all services are accessible from anywhere via Magi
 
 Run `./scripts/setup-tailscale.sh <AUTHKEY>` to activate.
 
+### Host Metrics (macOS/Windows — optional)
+On macOS and Windows, Docker runs in a VM and can't read host metrics directly. Run the host agent to see real CPU, memory, disk, and network stats:
+
+```bash
+# macOS/Windows only (Linux users get metrics automatically)
+node scripts/host-agent.js
+```
+
+The Dashboard will show:
+- 🍎 **macOS** / 🪟 **Windows** / 🐧 **Linux** badge
+- 🔵 **Agent Connected** indicator when running
+
 ### Internal Only
 | Service | Description |
 |---|---|

@@ -1,6 +1,35 @@
 
 # Project S Roadmap
 
+## v1.0 Release — April 15, 2026 ✅
+
+**Status:** Production Ready  
+**PRs Merged:** #219 (Security), #220 (Host Metrics)  
+**CI Status:** All Green (4/4 checks)
+
+### v1.0 Features Shipped
+
+| Feature | Status | PR |
+|---|---|---|
+| Self-Healing Scripts (boom.sh) | ✅ Done | #200 |
+| Traefik Integration | ✅ Done | #204 |
+| Tailscale One-Click | ✅ Done | #205 |
+| Incremental Backups (Restic) | ✅ Done | #206 |
+| 12-Word Recovery Phrase | ✅ Done | #208 |
+| TOTP 2FA | ✅ Done | #210 |
+| boom.sh Security Hardening | ✅ Done | #219 |
+| Cross-Platform Host Metrics | ✅ Done | #220 |
+| Backup Tab UI Polish | ✅ Done | #217 |
+
+### v1.0 Security Audit
+
+- ✅ YAML injection mitigated (envsubst templating)
+- ✅ .env creation requires user confirmation
+- ✅ GitGuardian: 0 secrets detected
+- ✅ All CI checks passing
+
+---
+
 ## Phase 1 Research and Open Source Selection
 
 ### Task 1 Define Integration Criteria
