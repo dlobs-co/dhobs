@@ -261,6 +261,30 @@ if [ ! -f ./data/security/.homeforge.key ]; then
     echo "└─────────────────────────────────────────────────────┘"
 fi
 
+# Start Host Agent for macOS/Windows (Linux gets metrics from /proc mounts)
+if [[ "$OSTYPE" == "darwin"* ]] || [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "win32" ]]; then
+    if command -v node &> /dev/null; then
+        echo "🔧 Starting host metrics agent..."
+        # Check if already running
+        if pgrep -f "node.*host-agent.js" > /dev/null 2>&1; then
+            echo "   ✅ Host agent already running"
+        else
+            # Start in background
+            nohup node "$(dirname "$0")/scripts/host-agent.js" > /tmp/homeforge-agent.log 2>&1 &
+            sleep 2
+            if pgrep -f "node.*host-agent.js" > /dev/null 2>&1; then
+                echo "   ✅ Host agent started (PID: $!)"
+                echo "   📊 Dashboard will show real host metrics"
+            else
+                echo "   ⚠️  Host agent failed to start. Check /tmp/homeforge-agent.log"
+            fi
+        fi
+    else
+        echo "   ⚠️  Node.js not found. Host metrics will show Docker VM stats only."
+        echo "   Install Node.js 20+ for real host metrics: https://nodejs.org"
+    fi
+fi
+
 # Open browser
 if command -v xdg-open &> /dev/null; then
     xdg-open http://localhost:3069
