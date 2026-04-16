@@ -312,14 +312,14 @@ function BackupWidget() {
 
 // ── Main Section ───────────────────────────────────────────────────────────
 
-export function MetricsSection() {
-  const [stats, setStats] = useState<StatsData | null>(null)
+export function MetricsSection({ landingData }: { landingData?: StatsData }) {
+  const [stats, setStats] = useState<StatsData | null>(landingData || null)
   const [history, setHistory] = useState<HistoryPoint[]>([])
   const [range, setRange] = useState<TimeRange>("1h")
   const [rangeOpen, setRangeOpen] = useState(false)
   const [cpuHistory, setCpuHistory] = useState<number[]>([])
   const [memHistory, setMemHistory] = useState<number[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!landingData)
   const [expandedContainer, setExpandedContainer] = useState<string | null>(null)
   const isFetching = useRef(false)
   const rangeRef = useRef<HTMLDivElement>(null)
@@ -334,6 +334,20 @@ export function MetricsSection() {
   }, [])
 
   const fetchHistory = useCallback((r: TimeRange) => {
+    if (landingData) {
+      // Provide some mock history for landing page
+      const mockHistory = [...Array(24)].map((_, i) => ({
+        time: `${i}:00`,
+        cpu: 10 + Math.random() * 5,
+        memory: 40 + Math.random() * 10,
+        gpu: 0,
+        disk: 32,
+        netDown: Math.random(),
+        netUp: Math.random() * 0.5
+      }))
+      setHistory(mockHistory)
+      return
+    }
     fetch(`/api/stats/history?range=${r}`)
       .then(res => res.json())
       .then(data => {
@@ -352,10 +366,10 @@ export function MetricsSection() {
         }
       })
       .catch(() => {})
-  }, [])
+  }, [landingData])
 
   const fetchStats = useCallback(async () => {
-    if (isFetching.current) return
+    if (landingData || isFetching.current) return
     isFetching.current = true
     try {
       const res = await fetch('/api/stats')
@@ -379,7 +393,7 @@ export function MetricsSection() {
       }
     } catch { console.error("Metrics offline") }
     finally { isFetching.current = false }
-  }, [])
+  }, [landingData])
 
   useEffect(() => { fetchHistory(range) }, [range, fetchHistory])
   useEffect(() => { fetchStats(); const i = setInterval(fetchStats, 5000); return () => clearInterval(i) }, [fetchStats])

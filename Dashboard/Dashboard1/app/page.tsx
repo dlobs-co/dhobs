@@ -37,6 +37,32 @@ export default function HomePage() {
   const containerRef = useRef<HTMLDivElement>(null)
   const homeMetricsThreshold = 0.55
 
+  // Mock data for Landing Page
+  const MOCK_STATS = IS_LANDING ? {
+    cpu: "12.4",
+    memPerc: "45.2",
+    memBytes: "7.2",
+    netDown: "0.8",
+    netUp: "0.2",
+    uptimeDays: 14,
+    diskUsedPerc: 32,
+    platform: "linux",
+    agentConnected: true,
+    containers: [
+      { name: "jellyfin", status: "running", cpu: "2.4%", mem: "420MB / 2GB" },
+      { name: "nextcloud", status: "running", cpu: "1.1%", mem: "256MB / 1GB" },
+      { name: "matrix", status: "running", cpu: "0.5%", mem: "128MB / 512MB" },
+      { name: "ollama", status: "running", cpu: "0.0%", mem: "4.2GB / 8GB" }
+    ],
+    storage: [
+      { name: "Media", size: "1.2TB", bytes: 1.2 * 1024 ** 4 },
+      { name: "Backups", size: "450GB", bytes: 450 * 1024 ** 3 }
+    ],
+    disks: [
+      { mount: "/", total: "1TB", used: "320GB", avail: "680GB", usePerc: 32, device: "/dev/sda1" }
+    ]
+  } : undefined
+
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -161,6 +187,14 @@ export default function HomePage() {
       className={currentSection === "home" ? "relative min-h-[200vh]" : "relative h-screen overflow-hidden"}
       style={{ backgroundColor: bgColor }}
     >
+      {/* Landing Page Banner */}
+      {IS_LANDING && (
+        <div className="fixed top-0 left-0 right-0 z-[100] bg-emerald-500/90 text-white py-1 px-4 text-center text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+          <span>Live Preview Mode</span>
+          <span className="opacity-60 text-[8px] font-medium">— Interactive mock data, no backend required</span>
+        </div>
+      )}
+
       {/* Aurora Glow Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0" aria-hidden="true">
         <div
@@ -271,15 +305,15 @@ export default function HomePage() {
 
 
 
-      <main className="relative z-10 h-full w-full">
+      <main className={cn("relative z-10 h-full w-full", IS_LANDING ? "pt-10" : "")}>
         <div className={cn(
           "h-full w-full transition-all duration-500",
           (currentSection === "home" || currentSection === "metrics" || currentSection === "backups") ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none absolute inset-0"
         )}>
           {currentSection === "metrics" ? (
-             <MetricsSection />
+             <MetricsSection landingData={MOCK_STATS as any} />
           ) : currentSection === "backups" ? (
-             <BackupSection />
+             <BackupSection isLanding={IS_LANDING} />
           ) : (
             <>
               <div
@@ -300,7 +334,7 @@ export default function HomePage() {
                   transition: "opacity 0.1s ease-out, transform 0.1s ease-out",
                 }}
               >
-                <MetricsSection />
+                <MetricsSection landingData={MOCK_STATS as any} />
               </div>
             </>
           )}
