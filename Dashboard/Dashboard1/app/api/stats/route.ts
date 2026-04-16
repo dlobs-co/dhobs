@@ -376,6 +376,13 @@ async function readNetErrors(): Promise<{ rxErrors: number; txErrors: number; rx
 
 // Container health via docker ps -a — includes exited/unhealthy containers
 async function readContainerHealth(projectContainers: any[]): Promise<any[]> {
+  // Check migration lock files written by waiter scripts during DB migrations
+  const lockDir = '/data/.migration-locks'
+  const migratingServices = new Set<string>()
+  if (fs.existsSync(lockDir)) {
+    fs.readdirSync(lockDir).forEach(f => migratingServices.add(f))
+  }
+
   try {
     const { stdout } = await execAsync(
       `docker ps -a --filter "name=project-s-" --format "{{.Names}}\\t{{.Status}}"`,
@@ -392,26 +399,26 @@ async function readContainerHealth(projectContainers: any[]): Promise<any[]> {
     }
 
     return projectContainers.map((c: any) => {
+      const baseName = c.Name.replace('project-s-', '')
       const rawStatus = healthMap.get(c.Name) || 'Up'
       const statusLower = rawStatus.toLowerCase()
 
-      // Determine display status from raw docker status string
       let displayStatus = 'running'
-      if (statusLower.includes('unhealthy')) displayStatus = 'unhealthy'
+      if (migratingServices.has(baseName)) displayStatus = 'migrating'
+      else if (statusLower.includes('unhealthy')) displayStatus = 'unhealthy'
       else if (statusLower.includes('restarting')) displayStatus = 'restarting'
       else if (statusLower.includes('exited')) displayStatus = 'exited'
       else if (statusLower.includes('dead')) displayStatus = 'dead'
       else if (statusLower.includes('paused')) displayStatus = 'paused'
 
       return {
-        name: c.Name.replace('project-s-', ''),
+        name: baseName,
         status: displayStatus,
         cpu: c.CPUPerc,
         mem: c.MemUsage,
       }
     })
   } catch {
-    // Fallback: all containers running
     return projectContainers.map((c: any) => ({
       name: c.Name.replace('project-s-', ''),
       status: 'running',
