@@ -31,7 +31,7 @@ function SectionHeader({ title, action }: { title: string; action?: React.ReactN
   )
 }
 
-export function BackupSection() {
+export function BackupSection({ isLanding }: { isLanding?: boolean }) {
   const [backups, setBackups] = useState<BackupEntry[]>([])
   const [restoreLogs, setRestoreLogs] = useState<RestoreLogEntry[]>([])
   const [backingUp, setBackingUp] = useState(false)
@@ -50,14 +50,14 @@ export function BackupSection() {
   const availableServices = ['dashboard', 'jellyfin', 'nextcloud', 'mariadb', 'matrix', 'vaultwarden']
 
   const fetchStats = useCallback(async () => {
-    if (!isVisibleRef.current) return
+    if (isLanding || !isVisibleRef.current) return
     try {
       const res = await fetch('/api/stats')
       if (!res.ok) return
       const data = await res.json()
       if (data.diskUsedPerc !== undefined) setDiskUsage(data.diskUsedPerc)
     } catch { /* ignore */ }
-  }, [])
+  }, [isLanding])
 
   const startProgress = () => {
     setProgress(5)
@@ -72,6 +72,17 @@ export function BackupSection() {
   }
 
   const fetchBackups = useCallback(async () => {
+    if (isLanding) {
+      const mockBackups = [
+        { job_id: 'hf-snap-2026-04-15-1030', archive_size: 1.2 * 1024 ** 9, created_at: Math.floor(Date.now()/1000) - 86400, status: 'success', services: '["dashboard", "jellyfin", "nextcloud"]' },
+        { job_id: 'hf-snap-2026-04-14-1030', archive_size: 1.1 * 1024 ** 9, created_at: Math.floor(Date.now()/1000) - 172800, status: 'success', services: '["all"]' },
+        { job_id: 'hf-snap-2026-04-13-1030', archive_size: 1.1 * 1024 ** 9, created_at: Math.floor(Date.now()/1000) - 259200, status: 'success', services: '["all"]' }
+      ]
+      setBackups(mockBackups)
+      setDiskUsage(32)
+      setIsLoading(false)
+      return
+    }
     if (!isVisibleRef.current) return
     try {
       const res = await fetch('/api/backup')
@@ -80,17 +91,17 @@ export function BackupSection() {
       if (Array.isArray(data)) setBackups(data)
     } catch { /* silently fail */ }
     finally { setIsLoading(false) }
-  }, [])
+  }, [isLanding])
 
   const fetchRestoreLogs = useCallback(async () => {
-    if (!isVisibleRef.current) return
+    if (isLanding || !isVisibleRef.current) return
     try {
       const res = await fetch('/api/backup/restore-logs')
       if (!res.ok) return
       const data = await res.json()
       if (Array.isArray(data)) setRestoreLogs(data)
     } catch { /* silently fail */ }
-  }, [])
+  }, [isLanding])
 
   useEffect(() => {
     fetchBackups()
@@ -119,6 +130,24 @@ export function BackupSection() {
   const handleBackup = async () => {
     setBackingUp(true)
     startProgress()
+    if (isLanding) {
+      setTimeout(() => {
+        if (progressInterval.current) clearInterval(progressInterval.current)
+        setProgress(100)
+        setTimeout(() => {
+          setProgress(0)
+          setBackingUp(false)
+          setBackups(prev => [{
+            job_id: `hf-snap-${new Date().toISOString().split('T')[0]}-${Math.floor(Math.random()*1000)}`,
+            archive_size: 1.1 * 1024 ** 9,
+            created_at: Math.floor(Date.now()/1000),
+            status: 'success',
+            services: JSON.stringify(selectedServices.includes('all') ? availableServices : selectedServices)
+          }, ...prev])
+        }, 1000)
+      }, 3000)
+      return
+    }
     try {
       const servicesToBackup = selectedServices.includes('all') ? availableServices : selectedServices
       const res = await fetch('/api/backup', {
@@ -141,6 +170,10 @@ export function BackupSection() {
 
   const handleRestore = async (jobId: string) => {
     setShowRestoreModal(null)
+    if (isLanding) {
+      setBackups(prev => prev.map(b => b.job_id === jobId ? { ...b, status: 'restored' } : b))
+      return
+    }
     try {
       const backup = backups.find(b => b.job_id === jobId)
       let services: string[] = []
@@ -156,6 +189,10 @@ export function BackupSection() {
 
   const handleDelete = async (jobId: string) => {
     setShowDeleteModal(null)
+    if (isLanding) {
+      setBackups(prev => prev.filter(b => b.job_id !== jobId))
+      return
+    }
     try { await fetch(`/api/backup/${jobId}`, { method: 'DELETE' }) } catch { /* ignore */ }
     fetchBackups()
   }

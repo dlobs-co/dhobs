@@ -3,7 +3,7 @@ const isLanding = process.env.LANDING === 'true'
 
 const nextConfig = {
   output: isLanding ? 'export' : 'standalone',
-  basePath: isLanding ? '/ProjectS-HomeForge' : '',
+  basePath: isLanding ? '/dhobs' : '',
   images: {
     unoptimized: true,
   },
