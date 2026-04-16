@@ -1,6 +1,6 @@
 <p align="center">
   <h1 align="center">HomeForge</h1>
-  <p align="center"><strong>Your personal, private, self-hosted digital hub.</strong></p>
+  <p align="center"><strong>The private, self-hosted digital hub & AI appliance.</strong></p>
   <p align="center">One dashboard · One login · Zero cloud dependency</p>
 </p>
 
@@ -14,9 +14,9 @@
 
 Google Drive. Office 365. Netflix. 1Password. Chat apps. AI assistants. Every service costs monthly fees, harvests your data, and locks you into ecosystems you do not control.
 
-HomeForge replaces all of that with self-hosted, open-source alternatives running on hardware you own — a Raspberry Pi, an old PC, or a VPS.
+HomeForge replaces all of that with self-hosted, open-source alternatives running on hardware you own — a Raspberry Pi, an old PC, or a VPS. It's your personal "Mission Control" for digital sovereignty.
 
-Install once. Get a private, encrypted, modular platform that runs your digital life.
+Install once. Get a private, encrypted, modular platform that runs your digital life and hosts your local AI models.
 
 ---
 
