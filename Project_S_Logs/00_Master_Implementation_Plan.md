@@ -14,8 +14,9 @@
 | Feature | Status | Issue | Branch | Log |
 |---|---|---|---|---|
 | Compiled Host Agent (Go) | ✅ Done | #225 | `feat/compiled-host-agent-225` | #51 |
-| Migration Waiter | ⏳ Planned | - | - | - |
+| Migration Waiter Phase 9 | ⏳ PR Open | #239 | `feat/phase-9-migration-waiter` | #55 |
 | Host Agent Auto-Start | ⏳ Planned | - | - | - |
+| Architecture SSOT | ⏳ PR Open | #241 | `docs/architecture-ssot-241` | #56 |
 
 ### v1.0 Features Shipped
 
