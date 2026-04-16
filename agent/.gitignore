@@ -1,0 +1,6 @@
+# Compiled binaries
+homeforge-agent
+homeforge-agent.exe
+
+# Build directory
+dist/

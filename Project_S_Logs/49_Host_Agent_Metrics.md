@@ -250,7 +250,7 @@ async function fetchAgentMetrics(): Promise<any | null> {
 ## Future Improvements
 
 - [ ] Auto-start agent on boot (launchd for macOS, systemd for Linux, Task Scheduler for Windows)
-- [ ] Compiled Go/Rust agent for v2.0 (single binary, no Node.js requirement)
+- [🔨] Compiled Go agent — **in progress** (Issue #225, Branch `feat/compiled-host-agent-225`, Log #51)
 - [ ] WebSocket push for real-time metrics (currently polling)
 - [ ] Historical metrics aggregation in agent
 

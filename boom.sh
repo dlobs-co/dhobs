@@ -263,25 +263,44 @@ fi
 
 # Start Host Agent for macOS/Windows (Linux gets metrics from /proc mounts)
 if [[ "$OSTYPE" == "darwin"* ]] || [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "win32" ]]; then
-    if command -v node &> /dev/null; then
-        echo "🔧 Starting host metrics agent..."
-        # Check if already running
-        if pgrep -f "node.*host-agent.js" > /dev/null 2>&1; then
-            echo "   ✅ Host agent already running"
-        else
-            # Start in background
-            nohup node "$(dirname "$0")/scripts/host-agent.js" > /tmp/homeforge-agent.log 2>&1 &
-            sleep 2
-            if pgrep -f "node.*host-agent.js" > /dev/null 2>&1; then
-                echo "   ✅ Host agent started (PID: $!)"
-                echo "   📊 Dashboard will show real host metrics"
-            else
-                echo "   ⚠️  Host agent failed to start. Check /tmp/homeforge-agent.log"
-            fi
+    echo "🔧 Setting up host metrics agent..."
+    AGENT_PATH="$(dirname "$0")/agent/homeforge-agent"
+    
+    # 1. Clear old port 9101 if busy (kills previous agents)
+    if command -v lsof &> /dev/null; then
+        AGENT_PID=$(lsof -t -i:9101 || true)
+        if [ -n "$AGENT_PID" ]; then
+            echo "   🛑 Stopping old agent (PID: $AGENT_PID)..."
+            kill -9 "$AGENT_PID" 2>/dev/null || true
+            sleep 1
         fi
+    fi
+
+    # 2. Build if binary missing
+    if [ ! -f "$AGENT_PATH" ]; then
+        if command -v go &> /dev/null; then
+            echo "   🔨 Compiling Go agent..."
+            (cd "$(dirname "$0")/agent" && go build -trimpath -ldflags "-s -w" -o homeforge-agent .)
+        fi
+    fi
+
+    # 3. Start Go Agent (Primary)
+    if [ -f "$AGENT_PATH" ]; then
+        nohup "$AGENT_PATH" > /tmp/homeforge-agent.log 2>&1 &
+        sleep 1
+        if pgrep -f "homeforge-agent" > /dev/null 2>&1; then
+            echo "   ✅ Go Host Agent started (PID: $!)"
+        else
+            echo "   ⚠️  Go agent failed to start. Check /tmp/homeforge-agent.log"
+        fi
+    # 4. Fallback to Node.js (Legacy)
+    elif command -v node &> /dev/null && [ -f "$(dirname "$0")/scripts/host-agent.js" ]; then
+        echo "   ℹ️  Go agent not found. Falling back to Node.js agent..."
+        nohup node "$(dirname "$0")/scripts/host-agent.js" > /tmp/homeforge-agent.log 2>&1 &
+        sleep 1
+        echo "   ✅ Node.js Host Agent started (PID: $!)"
     else
-        echo "   ⚠️  Node.js not found. Host metrics will show Docker VM stats only."
-        echo "   Install Node.js 20+ for real host metrics: https://nodejs.org"
+        echo "   ⚠️  No host agent available (Go or Node). Host metrics will be limited."
     fi
 fi
 

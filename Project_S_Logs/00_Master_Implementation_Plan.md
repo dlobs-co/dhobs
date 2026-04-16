@@ -7,6 +7,16 @@
 **PRs Merged:** #219 (Security), #220 (Host Metrics)  
 **CI Status:** All Green (4/4 checks)
 
+---
+
+## v1.0.1 — In Progress
+
+| Feature | Status | Issue | Branch | Log |
+|---|---|---|---|---|
+| Compiled Host Agent (Go) | ✅ Done | #225 | `feat/compiled-host-agent-225` | #51 |
+| Migration Waiter | ⏳ Planned | - | - | - |
+| Host Agent Auto-Start | ⏳ Planned | - | - | - |
+
 ### v1.0 Features Shipped
 
 | Feature | Status | PR |
