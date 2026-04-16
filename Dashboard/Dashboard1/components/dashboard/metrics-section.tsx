@@ -72,6 +72,7 @@ function humanSize(mb: number): string {
 }
 
 function statusColor(status: string): string {
+  if (status === "migrating") return "#f59e0b"
   if (["running", "healthy"].includes(status)) return "#22c55e"
   if (["unhealthy", "exited", "dead"].includes(status)) return "#ef4444"
   if (["restarting", "paused"].includes(status)) return "#f59e0b"
@@ -79,6 +80,7 @@ function statusColor(status: string): string {
 }
 
 function statusLabel(status: string): string {
+  if (status === "migrating") return "Migrating..."
   if (["running", "healthy"].includes(status)) return "Running"
   if (status === "unhealthy") return "Unhealthy"
   if (status === "exited") return "Exited"

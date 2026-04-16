@@ -172,6 +172,7 @@ services:
     volumes:
       - ./data/nextcloud/html:/var/www/html
       - ./data/nextcloud/data:/var/www/nextcloud_data
+      - ./data/.migration-locks:/data/.migration-locks
       - ./scripts/wait-for-db.sh:/usr/local/bin/wait-for-db.sh:ro
       - ./config/nextcloud/startup-waiter.sh:/docker-entrypoint-hooks.d/before-starting/00-startup-waiter.sh:ro
       - ./config/nextcloud/setup-office.sh:/docker-entrypoint-hooks.d/before-starting/setup-office.sh:ro
@@ -204,7 +205,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 300s
     logging: *default-logging
     labels:
       - "traefik.enable=true"
@@ -325,7 +326,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 60s
     logging: *default-logging
 
   # Pin: full version (breaking changes between minors)
@@ -343,6 +344,7 @@ services:
         condition: service_healthy
     volumes:
       - ./data/matrix/synapse:/data
+      - ./data/.migration-locks:/data/.migration-locks
       - ./scripts/wait-for-db.sh:/usr/local/bin/wait-for-db.sh:ro
       - ./config/matrix:/etc/synapse-config:ro
     environment:
@@ -368,7 +370,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 120s
     logging: *default-logging
     labels:
       - "traefik.enable=true"
