@@ -228,11 +228,13 @@ Accessible from anywhere via MagicDNS:
 
 ### 4.4 Host Metrics (macOS/Windows — Optional)
 
-Docker runs in a VM on macOS/Windows and can't read host metrics directly.
+Docker runs in a VM on macOS/Windows and can't read host metrics directly. Use the compiled Go agent for high-performance, zero-dependency monitoring.
 
 ```bash
 # macOS/Windows only (Linux users get metrics automatically)
-node scripts/host-agent.js
+cd agent
+make all
+./homeforge-agent
 ```
 
 **Dashboard shows:**
