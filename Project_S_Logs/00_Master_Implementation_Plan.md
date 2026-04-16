@@ -14,7 +14,9 @@
 | Feature | Status | Issue | Branch | Log |
 |---|---|---|---|---|
 | Compiled Host Agent (Go) | ✅ Done | #225 | `feat/compiled-host-agent-225` | #51 |
-| Migration Waiter | ⏳ Planned | - | - | - |
+| Migration Waiter Phase 9 | ✅ Merged | #239 | `feat/migration-waiter-phase9-239` | #55 |
+| Architecture SSOT | ✅ Merged | #241 | `docs/architecture-ssot-241` | #56 |
+| Network Segmentation | ⏳ PR Open | #242 | `feat/network-segmentation-242` | #57 |
 | Host Agent Auto-Start | ⏳ Planned | - | - | - |
 
 ### v1.0 Features Shipped
