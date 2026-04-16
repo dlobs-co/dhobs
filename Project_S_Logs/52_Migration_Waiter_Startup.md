@@ -170,6 +170,15 @@ Fix:
 
 ---
 
+## Phase 9 Enhancement
+
+Issue `#239` (Log 55) extends this work with:
+- Touch-file lock mechanism (`/data/.migration-locks/<service>`) during active migrations
+- Dashboard shows amber "Migrating..." instead of "Unhealthy" during DB upgrades
+- `start_period` bumped: Nextcloud 60s→300s, Synapse 30s→120s, Synapse-DB 30s→60s
+
+---
+
 ## Outcome
 
 Issue `#227` complete.
