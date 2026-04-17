@@ -1,5 +1,5 @@
 import { stopContainer, startContainer } from './docker'
-import { execSync } from 'child_process'
+import { execFileSync } from 'child_process'
 import fs from 'fs'
 import path from 'path'
 import { getDb } from './db'
@@ -13,8 +13,12 @@ const containerMap: Record<string, string> = {
   vaultwarden: 'project-s-vaultwarden'
 }
 
+// Strict whitelist — reject any service name not explicitly known
+const ALLOWED_SERVICES = new Set(Object.keys(containerMap))
+
 const RESTIC_REPO = process.env.RESTIC_REPO || '/data/backups/restic'
 const RESTIC_PASSWORD_FILE = process.env.RESTIC_PASSWORD_FILE || '/data/secrets/restic_password'
+const SNAPSHOTS_BASE = '/snapshots'
 
 function resticEnv(): Record<string, string> {
   return {
@@ -25,12 +29,10 @@ function resticEnv(): Record<string, string> {
 }
 
 function restic(args: string[], opts: { cwd?: string } = {}): string {
-  const cmd = `restic ${args.join(' ')}`
-  return execSync(cmd, {
+  return execFileSync('restic', args, {
     ...opts,
     env: resticEnv(),
     encoding: 'utf-8',
-    stdio: ['pipe', 'pipe', 'pipe'],
   }).trim()
 }
 
@@ -46,16 +48,32 @@ export async function runRestoreJob(jobId: string, backupRow: any, services: str
   restic(['restore', snapshotId, '--target', restoreDir])
 
   for (const service of services) {
-    const containerName = containerMap[service] || `project-s-${service}`
-    const snapshotPath = `/snapshots/${service}`
+    if (!ALLOWED_SERVICES.has(service)) {
+      console.warn(`Unknown service "${service}" — skipping`)
+      continue
+    }
+
+    const containerName = containerMap[service]
+    const snapshotPath = path.resolve(SNAPSHOTS_BASE, service)
     const serviceRestore = path.join(restoreDir, service)
+
+    // Boundary check — prevent path traversal via crafted service name
+    if (!snapshotPath.startsWith(SNAPSHOTS_BASE + path.sep)) {
+      console.warn(`Path traversal attempt for service "${service}" — skipping`)
+      continue
+    }
 
     if (!fs.existsSync(serviceRestore)) continue
 
     stopContainer(containerName)
     try {
-      execSync(`rm -rf ${snapshotPath}/*`, { stdio: 'ignore' })
-      execSync(`cp -a ${serviceRestore}/. ${snapshotPath}/`, { stdio: 'ignore' })
+      // Clear destination without spawning a shell
+      if (fs.existsSync(snapshotPath)) {
+        for (const entry of fs.readdirSync(snapshotPath)) {
+          fs.rmSync(path.join(snapshotPath, entry), { recursive: true, force: true })
+        }
+      }
+      execFileSync('cp', ['-a', `${serviceRestore}/.`, `${snapshotPath}/`], { stdio: 'ignore' })
     } finally {
       startContainer(containerName)
     }
