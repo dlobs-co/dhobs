@@ -1,5 +1,5 @@
 import { pauseContainer, unpauseContainer } from './docker'
-import { execSync } from 'child_process'
+import { execFileSync } from 'child_process'
 import fs from 'fs'
 import path from 'path'
 import { getDb } from './db'
@@ -13,8 +13,12 @@ const containerMap: Record<string, string> = {
   vaultwarden: 'project-s-vaultwarden'
 }
 
+// Strict whitelist — 'media' allowed for backup but has no container to pause
+const ALLOWED_SERVICES = new Set([...Object.keys(containerMap), 'media'])
+
 const RESTIC_REPO = process.env.RESTIC_REPO || '/data/backups/restic'
 const RESTIC_PASSWORD_FILE = process.env.RESTIC_PASSWORD_FILE || '/data/secrets/restic_password'
+const SNAPSHOTS_BASE = '/snapshots'
 
 function resticEnv(): Record<string, string> {
   return {
@@ -25,12 +29,10 @@ function resticEnv(): Record<string, string> {
 }
 
 function restic(args: string[], opts: { cwd?: string } = {}): string {
-  const cmd = `restic ${args.join(' ')}`
-  return execSync(cmd, {
+  return execFileSync('restic', args, {
     ...opts,
     env: resticEnv(),
     encoding: 'utf-8',
-    stdio: ['pipe', 'pipe', 'pipe'],
   }).trim()
 }
 
@@ -41,11 +43,11 @@ export async function initResticRepo() {
   }
   console.log('Initializing Restic repository...')
   fs.mkdirSync(RESTIC_REPO, { recursive: true })
-  // Generate password if not present
   const pwDir = path.dirname(RESTIC_PASSWORD_FILE)
   fs.mkdirSync(pwDir, { recursive: true })
   if (!fs.existsSync(RESTIC_PASSWORD_FILE)) {
-    const pw = execSync('openssl rand -hex 32').toString().trim()
+    // execFileSync with array args — no shell injection possible
+    const pw = execFileSync('openssl', ['rand', '-hex', '32'], { encoding: 'utf-8' }).trim()
     fs.writeFileSync(RESTIC_PASSWORD_FILE, pw)
   }
   restic(['init'])
@@ -63,9 +65,20 @@ export async function runBackupJob(jobId: string, services: string[], includeMed
     if (includeMedia) backupServices.push('media')
 
     for (const service of backupServices) {
-      const containerName = containerMap[service] || `project-s-${service}`
-      const snapshotPath = `/snapshots/${service}`
+      if (!ALLOWED_SERVICES.has(service)) {
+        console.warn(`Unknown service "${service}" — skipping`)
+        continue
+      }
+
+      const containerName = containerMap[service]
+      const snapshotPath = path.resolve(SNAPSHOTS_BASE, service)
       const serviceStaging = path.join(stagingDir, service)
+
+      // Boundary check — prevent path traversal
+      if (!snapshotPath.startsWith(SNAPSHOTS_BASE + path.sep)) {
+        console.warn(`Path traversal attempt for service "${service}" — skipping`)
+        continue
+      }
 
       if (!fs.existsSync(snapshotPath)) continue
 
@@ -73,23 +86,29 @@ export async function runBackupJob(jobId: string, services: string[], includeMed
 
       if (service === 'mariadb') {
         try {
-          execSync(`docker exec project-s-nextcloud-db sh -c 'exec mysqldump --all-databases -uroot -p"$MYSQL_ROOT_PASSWORD" > /var/lib/mysql/dump.sql'`, { stdio: 'ignore' })
+          // Container name and shell command are hardcoded — no user input involved
+          // execFileSync prevents host-level shell injection; sh runs inside the container
+          execFileSync(
+            'docker',
+            ['exec', 'project-s-nextcloud-db', 'sh', '-c',
+              'exec mysqldump --all-databases -uroot -p"$MYSQL_ROOT_PASSWORD" > /var/lib/mysql/dump.sql'],
+            { stdio: 'ignore' }
+          )
         } catch (e) { console.warn('mysqldump failed', e) }
       }
 
       const startPause = Date.now()
-      if (service !== 'media') pauseContainer(containerName)
+      if (service !== 'media' && containerName) pauseContainer(containerName)
 
       try {
-        execSync(`cp -a ${snapshotPath}/. ${serviceStaging}/`, { stdio: 'ignore' })
+        execFileSync('cp', ['-a', `${snapshotPath}/.`, `${serviceStaging}/`], { stdio: 'ignore' })
       } finally {
-        if (service !== 'media') unpauseContainer(containerName)
+        if (service !== 'media' && containerName) unpauseContainer(containerName)
         const duration = Date.now() - startPause
         if (service !== 'media') console.log(`Paused ${containerName} for ${duration}ms`)
       }
     }
 
-    // Run Restic backup
     console.log(`Running Restic backup for job ${jobId}...`)
     const output = restic(['backup', stagingDir, `--tag=job-${jobId}`, '--json'])
     const result = JSON.parse(output)
