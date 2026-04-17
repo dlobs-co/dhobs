@@ -70,6 +70,11 @@ mkdir -p ./data/vaultwarden
 mkdir -p ./data/kiwix
 mkdir -p ./data/workspace
 mkdir -p ./data/filebrowser
+mkdir -p ./data/tailscale/state
+mkdir -p ./data/open-webui
+mkdir -p ./data/ollama
+mkdir -p ./data/backups/restic
+mkdir -p ./data/secrets
 # Docker can create database.db as a directory if the file didn't exist at mount time.
 # Remove it if so, then create it as a proper empty file.
 [ -d ./data/filebrowser/database.db ] && rm -rf ./data/filebrowser/database.db
@@ -85,6 +90,13 @@ if [ ! -f ./data/vpn/server.conf ]; then
     echo "VPN seed configs copied to ./data/vpn/"
 fi
 mkdir -p ./config/matrix
+
+# 3.1 Migrate secrets to Docker Secrets files
+if [ -f ./scripts/migrate-secrets.sh ]; then
+    echo "Migrating secrets..."
+    chmod +x ./scripts/migrate-secrets.sh
+    ./scripts/migrate-secrets.sh
+fi
 
 # Ensure Nextcloud directories have correct permissions (UID 33 is www-data in the container)
 # On macOS, Docker Desktop runs in a VM and handles file ownership automatically.
@@ -294,6 +306,25 @@ fi
 # ──────────────────────────────────────────────
 echo ""
 echo "Setting up external health monitor..."
+
+# Ensure cron is installed on Linux if missing
+if [[ "$OSTYPE" == "linux-gnu"* ]] && ! command -v crontab &> /dev/null; then
+    echo "   crontab not found. Attempting to install cron..."
+    if command -v apt-get &> /dev/null; then
+        sudo apt-get update && sudo apt-get install -y cron
+        sudo systemctl enable --now cron || true
+    elif command -v pacman &> /dev/null; then
+        sudo pacman -S --noconfirm cronie
+        sudo systemctl enable --now cronie
+    elif command -v dnf &> /dev/null; then
+        sudo dnf install -y cronie
+        sudo systemctl enable --now cronie
+    else
+        echo "   ⚠️  Could not find a supported package manager to install cron."
+        echo "   Please install 'cron' or 'cronie' manually for health monitoring."
+    fi
+fi
+
 HEALTH_SCRIPT="$(pwd)/health.sh"
 
 # Make the script executable
