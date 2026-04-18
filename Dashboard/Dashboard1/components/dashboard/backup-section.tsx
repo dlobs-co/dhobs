@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef, useCallback } from "react"
+import { useEffect, useState, useRef, useCallback, type RefObject } from "react"
 import { Plus, RotateCcw, ShieldCheck, Database, Clock, FileJson, CheckCircle2, AlertCircle, Loader2, HardDrive, X } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -31,7 +31,13 @@ function SectionHeader({ title, action }: { title: string; action?: React.ReactN
   )
 }
 
-export function BackupSection({ isLanding }: { isLanding?: boolean }) {
+export function BackupSection({
+  isLanding,
+  scrollContainerRef,
+}: {
+  isLanding?: boolean
+  scrollContainerRef?: RefObject<HTMLDivElement | null>
+}) {
   const [backups, setBackups] = useState<BackupEntry[]>([])
   const [restoreLogs, setRestoreLogs] = useState<RestoreLogEntry[]>([])
   const [backingUp, setBackingUp] = useState(false)
@@ -260,7 +266,7 @@ export function BackupSection({ isLanding }: { isLanding?: boolean }) {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 overflow-y-auto px-3 sm:px-6 py-3 space-y-4">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-3 sm:px-6 py-3 space-y-4">
 
         {/* Stat pills row */}
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
