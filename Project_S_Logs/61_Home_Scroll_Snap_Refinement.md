@@ -1,9 +1,9 @@
 # 61 — Home Scroll Snap Refinement
 
-**Date:** April 18, 2026  
-**Author:** Basil Suhail  
-**Related Issue:** #272  
-**PR:** TBD  
+**Date:** April 18, 2026
+**Author:** Basil Suhail
+**Related Issue:** #272
+**PR:** TBD
 **Status:** Ready for review
 
 ---
