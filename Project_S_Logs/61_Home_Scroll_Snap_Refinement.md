@@ -3,7 +3,7 @@
 **Date:** April 18, 2026
 **Author:** Basil Suhail
 **Related Issue:** #272
-**PR:** TBD
+**PR:** #273
 **Status:** Ready for review
 
 ---
