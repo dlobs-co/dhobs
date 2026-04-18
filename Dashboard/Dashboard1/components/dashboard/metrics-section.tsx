@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef, useCallback } from "react"
+import { useEffect, useState, useRef, useCallback, type RefObject } from "react"
 import { Activity, ChevronDown, ArrowUpRight, ArrowDownRight, MoreHorizontal, Plus, Download, RotateCcw, ServerOff, ChevronRight } from "lucide-react"
 import { Area, AreaChart, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, Line, LineChart } from "recharts"
 
@@ -56,6 +56,34 @@ interface HistoryPoint {
 }
 
 type TimeRange = "1h" | "6h" | "24h" | "7d"
+
+const EMPTY_STATS: StatsData = {
+  cpu: "0",
+  memPerc: "0",
+  memBytes: "0",
+  netDown: "0",
+  netUp: "0",
+  storage: [],
+  containers: [],
+  gpu: null,
+  temps: { cpu: null, gpu: null, sys: null },
+  diskUsedPerc: null,
+  uptimeDays: null,
+  swap: null,
+  loadAvg: null,
+  netErrors: null,
+  disks: [],
+  smart: [],
+  power: { watts: null, kwhEstimate: null },
+  backup: { lastRun: null, lastRunAgo: null, success: null, size: null },
+  ups: { batteryPerc: null, loadPerc: null, runtimeMin: null, status: null },
+  platform: "linux",
+  agentConnected: false,
+  metricsSource: "unavailable",
+}
+
+let cachedStats: StatsData | null = null
+let cachedHistory: Partial<Record<TimeRange, HistoryPoint[]>> = {}
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -314,14 +342,22 @@ function BackupWidget() {
 
 // ── Main Section ───────────────────────────────────────────────────────────
 
-export function MetricsSection({ landingData }: { landingData?: StatsData }) {
-  const [stats, setStats] = useState<StatsData | null>(landingData || null)
-  const [history, setHistory] = useState<HistoryPoint[]>([])
+export function MetricsSection({
+  landingData,
+  scrollContainerRef,
+  showScrollCue = false,
+}: {
+  landingData?: StatsData
+  scrollContainerRef?: RefObject<HTMLDivElement | null>
+  showScrollCue?: boolean
+}) {
+  const [stats, setStats] = useState<StatsData | null>(landingData || cachedStats || null)
+  const [history, setHistory] = useState<HistoryPoint[]>(landingData ? [] : cachedHistory["1h"] || [])
   const [range, setRange] = useState<TimeRange>("1h")
   const [rangeOpen, setRangeOpen] = useState(false)
   const [cpuHistory, setCpuHistory] = useState<number[]>([])
   const [memHistory, setMemHistory] = useState<number[]>([])
-  const [loading, setLoading] = useState(!landingData)
+  const [loading, setLoading] = useState(!landingData && !cachedStats)
   const [expandedContainer, setExpandedContainer] = useState<string | null>(null)
   const isFetching = useRef(false)
   const rangeRef = useRef<HTMLDivElement>(null)
@@ -348,13 +384,14 @@ export function MetricsSection({ landingData }: { landingData?: StatsData }) {
         netUp: Math.random() * 0.5
       }))
       setHistory(mockHistory)
+      cachedHistory[r] = mockHistory
       return
     }
     fetch(`/api/stats/history?range=${r}`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
-          setHistory(data.map((d: any) => ({
+          const mappedHistory = data.map((d: any) => ({
             time: d.time,
             cpu: d.cpu ?? 0,
             memory: d.memory ?? 0,
@@ -362,7 +399,9 @@ export function MetricsSection({ landingData }: { landingData?: StatsData }) {
             disk: d.disk ?? 0,
             netDown: parseFloat(d.netDown) || 0,
             netUp: parseFloat(d.netUp) || 0,
-          })))
+          }))
+          setHistory(mappedHistory)
+          cachedHistory[r] = mappedHistory
           setCpuHistory(data.map((d: any) => d.cpu ?? 0).slice(-30))
           setMemHistory(data.map((d: any) => d.memory ?? 0).slice(-30))
         }
@@ -378,6 +417,7 @@ export function MetricsSection({ landingData }: { landingData?: StatsData }) {
       const data = await res.json()
       if (data && !data.error) {
         setStats(data)
+        cachedStats = data
         setLoading(false)
         const diskPerc = data.diskUsedPerc ?? 0
         setCpuHistory(prev => [...prev, parseFloat(data.cpu) || 0].slice(-30))
@@ -392,6 +432,15 @@ export function MetricsSection({ landingData }: { landingData?: StatsData }) {
           netDown: parseFloat(data.netDown) || 0,
           netUp: parseFloat(data.netUp) || 0,
         }].slice(-1344))
+        cachedHistory[range] = [...(cachedHistory[range] || []), {
+          time: now,
+          cpu: parseFloat(data.cpu) || 0,
+          memory: parseFloat(data.memPerc) || 0,
+          gpu: data?.gpu?.load ?? 0,
+          disk: diskPerc,
+          netDown: parseFloat(data.netDown) || 0,
+          netUp: parseFloat(data.netUp) || 0,
+        }].slice(-1344)
       }
     } catch { console.error("Metrics offline") }
     finally { isFetching.current = false }
@@ -401,18 +450,7 @@ export function MetricsSection({ landingData }: { landingData?: StatsData }) {
   useEffect(() => { fetchStats(); const i = setInterval(fetchStats, 5000); return () => clearInterval(i) }, [fetchStats])
 
   const rangeLabels: Record<TimeRange, string> = { "1h": "Past hour", "6h": "Past 6 hours", "24h": "Past 24 hours", "7d": "Past 7 days" }
-
-  // ── Render ─────────────────────────────────────────────────────────────
-
-  if (!stats) {
-    return (
-      <div className="flex flex-col h-screen overflow-hidden pl-[88px]">
-        <div className="flex items-center justify-center h-full text-foreground/20">
-          <span className="text-xs font-medium animate-pulse">Loading metrics...</span>
-        </div>
-      </div>
-    )
-  }
+  const resolvedStats = stats ?? EMPTY_STATS
 
   const chartTooltip = {
     contentStyle: { backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "11px", padding: "6px 10px", boxShadow: "0 2px 8px rgba(0,0,0,0.12)" },
@@ -435,15 +473,15 @@ export function MetricsSection({ landingData }: { landingData?: StatsData }) {
           </div>
           {/* Platform badge */}
           <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-tight border ${
-            stats.platform === 'linux' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-            stats.platform === 'darwin' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-            stats.platform === 'win32' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' :
+            resolvedStats.platform === 'linux' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+            resolvedStats.platform === 'darwin' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+            resolvedStats.platform === 'win32' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' :
             'bg-secondary/10 text-foreground/30 border-border'
           }`}>
-            {stats.platform === 'darwin' ? 'macOS' : stats.platform === 'win32' ? 'Windows' : stats.platform}
+            {resolvedStats.platform === 'darwin' ? 'macOS' : resolvedStats.platform === 'win32' ? 'Windows' : resolvedStats.platform}
           </span>
           {/* Agent status */}
-          {stats.agentConnected && (
+          {resolvedStats.agentConnected && (
             <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-tight bg-cyan-500/10 text-cyan-400 border border-cyan-500/20" title="Host agent providing metrics">
               Agent Connected
             </span>
@@ -471,7 +509,7 @@ export function MetricsSection({ landingData }: { landingData?: StatsData }) {
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto px-3 sm:px-6 py-3 space-y-4">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-3 sm:px-6 py-3 space-y-4">
 
         {/* Stat pills */}
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
@@ -488,31 +526,31 @@ export function MetricsSection({ landingData }: { landingData?: StatsData }) {
             <div className="flex flex-wrap items-center gap-x-4 sm:gap-x-6 gap-y-2">
               <div className="flex items-baseline gap-1.5" title="Total CPU usage across all containers">
                 <span className="text-[10px] text-foreground/30 uppercase tracking-wider">CPU</span>
-                <span className="text-base font-mono font-semibold text-foreground tabular-nums">{stats?.cpu ?? "0"}%</span>
+                <span className="text-base font-mono font-semibold text-foreground tabular-nums">{resolvedStats.cpu}%</span>
                 <Sparkline data={cpuHistory} color="#0ea5e9" />
               </div>
               <span className="text-foreground/10">|</span>
               <div className="flex items-baseline gap-1.5" title="Memory usage and total GiB consumed">
                 <span className="text-[10px] text-foreground/30 uppercase tracking-wider">Memory</span>
-                <span className="text-base font-mono font-semibold text-foreground tabular-nums">{stats?.memPerc ?? "0"}%</span>
-                <span className="text-[10px] text-foreground/25">{stats?.memBytes ?? "0"} GiB</span>
+                <span className="text-base font-mono font-semibold text-foreground tabular-nums">{resolvedStats.memPerc}%</span>
+                <span className="text-[10px] text-foreground/25">{resolvedStats.memBytes} GiB</span>
                 <Sparkline data={memHistory} color="#8b5cf6" />
               </div>
               <span className="text-foreground/10">|</span>
               <div className="flex items-baseline gap-1.5" title="Root filesystem disk usage">
                 <span className="text-[10px] text-foreground/30 uppercase tracking-wider">Disk</span>
-                <span className="text-base font-mono font-semibold text-foreground tabular-nums">{stats?.diskUsedPerc ?? "—"}%</span>
+                <span className="text-base font-mono font-semibold text-foreground tabular-nums">{resolvedStats.diskUsedPerc ?? "—"}%</span>
               </div>
               <span className="text-foreground/10">|</span>
               <div className="flex items-baseline gap-1.5" title="System uptime in days since last reboot">
                 <span className="text-[10px] text-foreground/30 uppercase tracking-wider">Uptime</span>
-                <span className="text-base font-mono font-semibold text-foreground tabular-nums">{stats?.uptimeDays ?? "—"}d</span>
+                <span className="text-base font-mono font-semibold text-foreground tabular-nums">{resolvedStats.uptimeDays ?? "—"}d</span>
               </div>
               <span className="text-foreground/10">|</span>
               <div className="flex items-baseline gap-1.5" title="Network throughput — download and upload MB/s">
                 <span className="text-[10px] text-foreground/30 uppercase tracking-wider">Net</span>
-                <span className="text-[11px] font-mono text-emerald-500 tabular-nums">↓{stats?.netDown ?? "0"}</span>
-                <span className="text-[11px] font-mono text-rose-400 tabular-nums">↑{stats?.netUp ?? "0"}</span>
+                <span className="text-[11px] font-mono text-emerald-500 tabular-nums">↓{resolvedStats.netDown}</span>
+                <span className="text-[11px] font-mono text-rose-400 tabular-nums">↑{resolvedStats.netUp}</span>
                 <span className="text-[9px] text-foreground/20">MB/s</span>
               </div>
             </div>
@@ -585,22 +623,22 @@ export function MetricsSection({ landingData }: { landingData?: StatsData }) {
                 <div className="grid grid-cols-4 gap-3">
                   <div>
                     <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Swap</div>
-                    <div className="text-sm font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.swap ? `${stats.swap.perc.toFixed(0)}%` : "—"}</div>
+                    <div className="text-sm font-mono font-semibold text-foreground tabular-nums mt-0.5">{resolvedStats.swap ? `${resolvedStats.swap.perc.toFixed(0)}%` : "—"}</div>
                   </div>
                   <div>
                     <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Load</div>
-                    <div className="text-sm font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.loadAvg ? stats.loadAvg.load1.toFixed(2) : "—"}</div>
-                    {stats.loadAvg && <div className="text-[9px] text-foreground/15 tabular-nums">{stats.loadAvg.load5} · {stats.loadAvg.load15}</div>}
+                    <div className="text-sm font-mono font-semibold text-foreground tabular-nums mt-0.5">{resolvedStats.loadAvg ? resolvedStats.loadAvg.load1.toFixed(2) : "—"}</div>
+                    {resolvedStats.loadAvg && <div className="text-[9px] text-foreground/15 tabular-nums">{resolvedStats.loadAvg.load5} · {resolvedStats.loadAvg.load15}</div>}
                   </div>
                   <div>
                     <div className="text-[9px] text-foreground/25 uppercase tracking-wider">CPU Temp</div>
-                    <div className="text-sm font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.temps?.cpu ? `${stats.temps.cpu}°` : "—"}</div>
-                    {stats.gpu?.temp && <div className="text-[9px] text-foreground/15 tabular-nums">GPU {stats.gpu.temp}°</div>}
+                    <div className="text-sm font-mono font-semibold text-foreground tabular-nums mt-0.5">{resolvedStats.temps?.cpu ? `${resolvedStats.temps.cpu}°` : "—"}</div>
+                    {resolvedStats.gpu?.temp && <div className="text-[9px] text-foreground/15 tabular-nums">GPU {resolvedStats.gpu.temp}°</div>}
                   </div>
                   <div>
                     <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Net Health</div>
-                    <div className="text-sm font-mono font-semibold tabular-nums mt-0.5" style={{ color: (stats.netErrors && (stats.netErrors.rxErrors + stats.netErrors.txDropped) > 0) ? "#ef4444" : "#22c55e" }}>
-                      {stats.netErrors ? (stats.netErrors.rxErrors + stats.netErrors.txErrors + stats.netErrors.rxDropped + stats.netErrors.txDropped) : "—"}
+                    <div className="text-sm font-mono font-semibold tabular-nums mt-0.5" style={{ color: (resolvedStats.netErrors && (resolvedStats.netErrors.rxErrors + resolvedStats.netErrors.txDropped) > 0) ? "#ef4444" : "#22c55e" }}>
+                      {resolvedStats.netErrors ? (resolvedStats.netErrors.rxErrors + resolvedStats.netErrors.txErrors + resolvedStats.netErrors.rxDropped + resolvedStats.netErrors.txDropped) : "—"}
                     </div>
                   </div>
                 </div>
@@ -618,8 +656,8 @@ export function MetricsSection({ landingData }: { landingData?: StatsData }) {
               <SectionHeader title="Storage" />
               <div className="bg-secondary/5 rounded-lg p-3">
                 <div className="space-y-2">
-                  {stats.storage.map((s, i) => {
-                    const total = stats.storage.reduce((sum, x) => sum + x.bytes, 0)
+                  {resolvedStats.storage.map((s, i) => {
+                    const total = resolvedStats.storage.reduce((sum, x) => sum + x.bytes, 0)
                     const pct = total > 0 ? ((s.bytes / total) * 100).toFixed(1) : "0"
                     const colors = ["#0ea5e9", "#8b5cf6", "#f59e0b", "#22c55e", "#ec4899", "#06b6d4"]
                     return (
@@ -634,13 +672,13 @@ export function MetricsSection({ landingData }: { landingData?: StatsData }) {
                       </div>
                     )
                   })}
-                  {stats.storage.length === 0 && <div className="text-[11px] text-foreground/20 py-4">No storage data</div>}
+                  {resolvedStats.storage.length === 0 && <div className="text-[11px] text-foreground/20 py-4">{loading ? "Loading storage..." : "No storage data"}</div>}
                 </div>
               </div>
             </div>
 
             {/* Disk Usage */}
-            {stats.disks && stats.disks.length > 0 && (
+            {resolvedStats.disks && resolvedStats.disks.length > 0 && (
               <div>
                 <SectionHeader title="Disk Usage" />
                 <div className="bg-secondary/5 rounded-lg overflow-hidden">
@@ -653,7 +691,7 @@ export function MetricsSection({ landingData }: { landingData?: StatsData }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {stats.disks.map((d, i) => (
+                      {resolvedStats.disks.map((d, i) => (
                         <tr key={i} className="border-b border-border/40 hover:bg-secondary/5 transition-colors">
                           <td className="py-1.5 px-2 text-foreground/50 truncate max-w-[120px]" title={d.mount}>{d.mount}</td>
                           <td className="py-1.5 px-2 text-right font-mono tabular-nums text-foreground/40">{d.used}/{d.total}</td>
@@ -667,28 +705,28 @@ export function MetricsSection({ landingData }: { landingData?: StatsData }) {
             )}
 
             {/* UPS Status */}
-            {stats?.ups && stats.ups.batteryPerc !== null && (
+            {resolvedStats.ups && resolvedStats.ups.batteryPerc !== null && (
               <div>
                 <SectionHeader title="UPS" />
                 <div className="bg-secondary/5 rounded-lg p-3">
                   <div className="grid grid-cols-3 gap-4">
                     <div>
                       <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Battery</div>
-                      <div className="text-base font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.ups.batteryPerc}%</div>
+                      <div className="text-base font-mono font-semibold text-foreground tabular-nums mt-0.5">{resolvedStats.ups.batteryPerc}%</div>
                     </div>
                     <div>
                       <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Load</div>
-                      <div className="text-base font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.ups.loadPerc ? `${stats.ups.loadPerc}%` : "—"}</div>
+                      <div className="text-base font-mono font-semibold text-foreground tabular-nums mt-0.5">{resolvedStats.ups.loadPerc ? `${resolvedStats.ups.loadPerc}%` : "—"}</div>
                     </div>
                     <div>
                       <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Runtime</div>
-                      <div className="text-base font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.ups.runtimeMin ? `${stats.ups.runtimeMin.toFixed(0)}m` : "—"}</div>
+                      <div className="text-base font-mono font-semibold text-foreground tabular-nums mt-0.5">{resolvedStats.ups.runtimeMin ? `${resolvedStats.ups.runtimeMin.toFixed(0)}m` : "—"}</div>
                     </div>
                   </div>
-                  {stats.ups.status && (
+                  {resolvedStats.ups.status && (
                     <div className="mt-1">
-                      <span className="text-[9px] font-medium" style={{ color: stats.ups.status === 'OL' ? '#22c55e' : '#f59e0b' }}>
-                        {stats.ups.status === 'OL' ? 'Online' : stats.ups.status}
+                      <span className="text-[9px] font-medium" style={{ color: resolvedStats.ups.status === 'OL' ? '#22c55e' : '#f59e0b' }}>
+                        {resolvedStats.ups.status === 'OL' ? 'Online' : resolvedStats.ups.status}
                       </span>
                     </div>
                   )}
@@ -699,7 +737,7 @@ export function MetricsSection({ landingData }: { landingData?: StatsData }) {
         </div>
         {/* Containers table */}
         <div>
-          <SectionHeader title={`Containers (${stats.containers.length})`} />
+          <SectionHeader title={`Containers (${resolvedStats.containers.length})`} />
           <div className="overflow-x-auto -mx-1">
             <table className="w-full text-[11px]">
               <thead>
@@ -713,7 +751,7 @@ export function MetricsSection({ landingData }: { landingData?: StatsData }) {
                 </tr>
               </thead>
               <tbody>
-                {stats.containers.length > 0 ? stats.containers.map(c => (
+                {resolvedStats.containers.length > 0 ? resolvedStats.containers.map(c => (
                   <>
                     <tr
                       key={c.name}
@@ -767,6 +805,15 @@ export function MetricsSection({ landingData }: { landingData?: StatsData }) {
             </table>
           </div>
         </div>
+
+        {showScrollCue && (
+          <div className="flex justify-center mt-20 pb-4">
+            <div className="flex flex-col items-center gap-2 opacity-30 text-foreground">
+              <span className="text-xs uppercase tracking-wider">Scroll for backups</span>
+              <div className="w-px h-8 bg-gradient-to-b from-current to-transparent animate-pulse" />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

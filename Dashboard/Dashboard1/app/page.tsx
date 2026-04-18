@@ -26,6 +26,7 @@ interface ActiveWindow {
 }
 
 export default function HomePage() {
+  const HOME_SECTION_COUNT = 3
   const IS_LANDING = process.env.NEXT_PUBLIC_LANDING_MODE === 'true'
   const { colorTheme } = useTheme()
   const [scrollProgress, setScrollProgress] = useState(0)
@@ -35,7 +36,17 @@ export default function HomePage() {
   const [currentSection, setCurrentSection] = useState("home")
   const [openWindows, setOpenWindows] = useState<ActiveWindow[]>([])
   const containerRef = useRef<HTMLDivElement>(null)
+  const metricsScrollRef = useRef<HTMLDivElement>(null)
+  const backupsScrollRef = useRef<HTMLDivElement>(null)
+  const snapLockRef = useRef(false)
+  const snapTargetRef = useRef<number | null>(null)
+  const boundaryConfirmRef = useRef<{ sectionIdx: number; dir: number; expiresAt: number } | null>(null)
+  const lastWheelAtRef = useRef(0)
+  const postSnapCooldownRef = useRef(0)
+  const snapRafRef = useRef<number | null>(null)
+  const snapTimeoutRef = useRef<number | null>(null)
   const homeMetricsThreshold = 0.55
+  const homeBackupsThreshold = 1.55
 
   // Mock data for Landing Page
   const MOCK_STATS = IS_LANDING ? {
@@ -74,17 +85,183 @@ export default function HomePage() {
   }, [])
 
   useEffect(() => {
+    if (currentSection === "home") {
+      document.documentElement.classList.add("home-snap")
+    } else {
+      document.documentElement.classList.remove("home-snap")
+    }
+    return () => document.documentElement.classList.remove("home-snap")
+  }, [currentSection])
+
+  const clearSnapTimers = useCallback(() => {
+    if (snapRafRef.current !== null) {
+      cancelAnimationFrame(snapRafRef.current)
+      snapRafRef.current = null
+    }
+    if (snapTimeoutRef.current !== null) {
+      window.clearTimeout(snapTimeoutRef.current)
+      snapTimeoutRef.current = null
+    }
+  }, [])
+
+  const clampHomeSectionIndex = useCallback((index: number) => {
+    return Math.max(0, Math.min(HOME_SECTION_COUNT - 1, index))
+  }, [HOME_SECTION_COUNT])
+
+  const getHomeSectionIndex = useCallback((scrollY: number) => {
+    const vh = Math.max(window.innerHeight, 1)
+    return clampHomeSectionIndex(Math.round(scrollY / vh))
+  }, [clampHomeSectionIndex])
+
+  const getHomeInnerScroller = useCallback((sectionIdx: number) => {
+    if (sectionIdx === 1) return metricsScrollRef.current
+    if (sectionIdx === 2) return backupsScrollRef.current
+    return null
+  }, [])
+
+  const canScrollInnerSection = useCallback((el: HTMLDivElement, dir: number) => {
+    const atTop = el.scrollTop <= 0
+    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1
+    return (dir > 0 && !atBottom) || (dir < 0 && !atTop)
+  }, [])
+
+  const isAtInnerBoundary = useCallback((el: HTMLDivElement, dir: number) => {
+    const atTop = el.scrollTop <= 0
+    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1
+    return dir > 0 ? atBottom : atTop
+  }, [])
+
+  const releaseHomeSnapLock = useCallback((targetIdx?: number) => {
+    if (targetIdx !== undefined) {
+      snapTargetRef.current = targetIdx
+    }
+    postSnapCooldownRef.current = Date.now() + 220
+    snapLockRef.current = false
+    document.documentElement.classList.add("home-snap")
+    clearSnapTimers()
+  }, [clearSnapTimers])
+
+  const settleHomeSnap = useCallback((targetIdx: number) => {
+    clearSnapTimers()
+
+    const checkSettled = () => {
+      const targetY = targetIdx * window.innerHeight
+      if (Math.abs(window.scrollY - targetY) <= 2) {
+        releaseHomeSnapLock(targetIdx)
+        return
+      }
+      snapRafRef.current = requestAnimationFrame(checkSettled)
+    }
+
+    snapRafRef.current = requestAnimationFrame(checkSettled)
+    snapTimeoutRef.current = window.setTimeout(() => {
+      window.scrollTo({ top: targetIdx * window.innerHeight, behavior: "smooth" })
+      releaseHomeSnapLock(targetIdx)
+    }, 1200)
+  }, [clearSnapTimers, releaseHomeSnapLock])
+
+  // Wheel-throttled section snap: enforces one-section-per-gesture on home,
+  // lets inner scrollers consume wheel until they hit boundary.
+  useEffect(() => {
+    if (currentSection !== "home") return
+
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) < 4) return
+      const dir = e.deltaY > 0 ? 1 : -1
+      const now = Date.now()
+      const isFreshGesture = now - lastWheelAtRef.current > 180
+      lastWheelAtRef.current = now
+
+      if (snapLockRef.current) {
+        e.preventDefault()
+        return
+      }
+
+      if (postSnapCooldownRef.current > now) {
+        postSnapCooldownRef.current = now + 220
+        e.preventDefault()
+        return
+      }
+
+      const currentIdx = snapTargetRef.current ?? getHomeSectionIndex(window.scrollY)
+      const innerScroller = getHomeInnerScroller(currentIdx)
+      const isInnerScrollTarget = innerScroller?.contains(e.target as Node) ?? false
+
+      if (innerScroller && canScrollInnerSection(innerScroller, dir)) {
+        boundaryConfirmRef.current = null
+        if (isInnerScrollTarget) {
+          return
+        }
+        e.preventDefault()
+        return
+      }
+
+      if (innerScroller && isAtInnerBoundary(innerScroller, dir)) {
+        const pending = boundaryConfirmRef.current
+        const needsConfirm = !pending
+          || pending.sectionIdx !== currentIdx
+          || pending.dir !== dir
+          || pending.expiresAt < now
+
+        if (needsConfirm || !isFreshGesture) {
+          boundaryConfirmRef.current = {
+            sectionIdx: currentIdx,
+            dir,
+            expiresAt: now + 2000,
+          }
+          e.preventDefault()
+          return
+        }
+      } else {
+        boundaryConfirmRef.current = null
+      }
+
+      const targetIdx = clampHomeSectionIndex(currentIdx + dir)
+      if (targetIdx === currentIdx) {
+        snapTargetRef.current = currentIdx
+        boundaryConfirmRef.current = null
+        return
+      }
+
+      e.preventDefault()
+      boundaryConfirmRef.current = null
+      snapLockRef.current = true
+      snapTargetRef.current = targetIdx
+      // Drop snap-type during programmatic scroll so mandatory snap doesn't hijack mid-transit
+      document.documentElement.classList.remove("home-snap")
+      window.scrollTo({ top: targetIdx * window.innerHeight, behavior: "smooth" })
+      settleHomeSnap(targetIdx)
+    }
+
+    window.addEventListener("wheel", onWheel, { passive: false })
+    return () => {
+      window.removeEventListener("wheel", onWheel)
+      clearSnapTimers()
+      boundaryConfirmRef.current = null
+      snapLockRef.current = false
+    }
+  }, [canScrollInnerSection, clampHomeSectionIndex, clearSnapTimers, currentSection, getHomeInnerScroller, getHomeSectionIndex, isAtInnerBoundary, settleHomeSnap])
+
+  useEffect(() => {
     const handleScroll = () => {
       if (!containerRef.current || currentSection !== "home") return
       const scrollTop = window.scrollY
       const windowHeight = window.innerHeight
-      const progress = Math.min(scrollTop / windowHeight, 1)
+      const progress = Math.min(scrollTop / windowHeight, 2)
       setScrollProgress(progress)
+
+      if (!snapLockRef.current) {
+        snapTargetRef.current = getHomeSectionIndex(scrollTop)
+      }
+
+      if (boundaryConfirmRef.current && boundaryConfirmRef.current.expiresAt < Date.now()) {
+        boundaryConfirmRef.current = null
+      }
     }
 
     window.addEventListener("scroll", handleScroll, { passive: true })
     return () => window.removeEventListener("scroll", handleScroll)
-  }, [currentSection])
+  }, [currentSection, getHomeSectionIndex])
 
   const bringToFront = useCallback((id: string) => {
     setOpenWindows(prev => {
@@ -152,8 +329,12 @@ export default function HomePage() {
   const bgColor = mounted ? colorTheme.background : "#0a0a0a"
   const accentColor = mounted ? colorTheme.accent : "#d4e157"
   const highlightedSection =
-    currentSection === "home" && scrollProgress >= homeMetricsThreshold
-      ? "metrics"
+    currentSection === "home"
+      ? scrollProgress >= homeBackupsThreshold
+        ? "backups"
+        : scrollProgress >= homeMetricsThreshold
+          ? "metrics"
+          : currentSection
       : currentSection
 
   const handleNavigate = (section: string) => {
@@ -169,7 +350,12 @@ export default function HomePage() {
     if (section === "home") {
       setOpenWindows(prev => prev.map(w => w.isClosing ? w : { ...w, isMinimized: true }))
       setCurrentSection(section)
-      window.scrollTo({ top: 0, behavior: "smooth" })
+      // Snap-mandatory can hijack smooth scroll → use instant scroll.
+      // Double-call (now + rAF) handles layout/height change between current and home container.
+      window.scrollTo({ top: 0, behavior: "auto" })
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, behavior: "auto" })
+      })
       return
     }
     // Minimize open windows when navigating to metrics
@@ -190,7 +376,7 @@ export default function HomePage() {
   return (
     <div 
       ref={containerRef}
-      className={currentSection === "home" ? "relative min-h-[200vh]" : "relative h-screen overflow-hidden"}
+      className={currentSection === "home" ? "relative min-h-[300vh]" : "relative h-screen overflow-hidden"}
       style={{ backgroundColor: bgColor }}
     >
       {/* Landing Page Banner */}
@@ -329,18 +515,36 @@ export default function HomePage() {
                   transition: "opacity 0.1s ease-out, transform 0.1s ease-out",
                   pointerEvents: openWindows.some(w => !w.isMinimized && !w.isClosing) ? 'none' : 'auto',
                   position: openWindows.length > 0 ? 'relative' : 'relative',
+                  minHeight: "100vh",
+                  scrollSnapAlign: "start",
+                  scrollSnapStop: "always",
                 }}
               >
                 <WelcomeSection onNavigate={handleNavigate} />
               </div>
               <div
                 style={{
-                  opacity: scrollProgress > 0.3 ? (scrollProgress - 0.3) / 0.7 : 0,
+                  opacity: Math.max(0, Math.min(1, (scrollProgress - 0.3) / 0.7, (1.8 - scrollProgress) / 0.5)),
                   transform: `translateY(${(1 - scrollProgress) * 30}px)`,
                   transition: "opacity 0.1s ease-out, transform 0.1s ease-out",
+                  minHeight: "100vh",
+                  scrollSnapAlign: "start",
+                  scrollSnapStop: "always",
                 }}
               >
-                <MetricsSection landingData={MOCK_STATS as any} />
+                <MetricsSection landingData={MOCK_STATS as any} scrollContainerRef={metricsScrollRef} showScrollCue />
+              </div>
+              <div
+                style={{
+                  opacity: Math.max(0, Math.min(1, (scrollProgress - 1.3) / 0.7)),
+                  transform: `translateY(${(2 - scrollProgress) * 30}px)`,
+                  transition: "opacity 0.1s ease-out, transform 0.1s ease-out",
+                  minHeight: "100vh",
+                  scrollSnapAlign: "start",
+                  scrollSnapStop: "always",
+                }}
+              >
+                <BackupSection isLanding={IS_LANDING} scrollContainerRef={backupsScrollRef} />
               </div>
             </>
           )}
@@ -387,6 +591,10 @@ export default function HomePage() {
         
         html {
           scroll-behavior: smooth;
+        }
+
+        html.home-snap {
+          scroll-snap-type: y mandatory;
         }
         
         /* Custom scrollbar */
