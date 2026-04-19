@@ -64,9 +64,20 @@ if [ ! -f .env ]; then
     fi
 fi
 
-# Auto-detect LAN IP
+# Auto-detect LAN IP — first run only.
+#
+# When to use localhost vs a real LAN IP:
+#   localhost  — accessing HomeForge ONLY from the machine running Docker
+#                (browser and Docker on same host). This is the safe default.
+#   LAN IP     — accessing from OTHER devices on your network (phone, laptop, etc.)
+#                Set HOMEFORGE_LAN_IP manually in .env to your machine's LAN IP.
+#
+# Auto-detection runs ONLY when .env has no IP (empty or unset).
+# If you explicitly set HOMEFORGE_LAN_IP=localhost, boom.sh will NEVER overwrite it.
+# If you explicitly set a real LAN IP, boom.sh will NEVER overwrite it either.
+# Only a blank/missing value triggers auto-detection.
 CURRENT_LAN_IP=$(grep "^HOMEFORGE_LAN_IP=" .env 2>/dev/null | cut -d'=' -f2-)
-if [ -z "$CURRENT_LAN_IP" ] || [ "$CURRENT_LAN_IP" = "localhost" ]; then
+if [ -z "$CURRENT_LAN_IP" ]; then
     DETECTED_IP=""
     if [[ "$OSTYPE" == "darwin"* ]]; then
         DETECTED_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || true)

@@ -105,3 +105,24 @@ docker compose up -d nextcloud collabora
 | `docker-compose.yml` | `server_name` now uses `${HOMEFORGE_LAN_IP:-localhost}:9980` |
 | `config/nextcloud/setup-office.sh` | Curl-fetches discovery XML on every start; adds `chown www-data`; does NOT call `richdocuments:activate-config` |
 | `.env` | `HOMEFORGE_LAN_IP=localhost` |
+| `boom.sh` | Auto-detect no longer overwrites explicit `localhost` — only runs when `HOMEFORGE_LAN_IP` is blank |
+
+---
+
+## 8. Follow-up Fix: boom.sh Auto-detect Overwriting localhost
+
+**Date:** 2026-04-19 (same session)
+
+**Problem:** `boom.sh` lines 67–85 ran auto-detect whenever `HOMEFORGE_LAN_IP=localhost`, overwriting the user's explicit value with the machine's detected LAN IP on every run. This silently re-introduced the `frame-ancestors` mismatch even after the user had correctly set `localhost`.
+
+**Old condition (broken):**
+```bash
+if [ -z "$CURRENT_LAN_IP" ] || [ "$CURRENT_LAN_IP" = "localhost" ]; then
+```
+
+**New condition (fixed):**
+```bash
+if [ -z "$CURRENT_LAN_IP" ]; then
+```
+
+**Rule:** `boom.sh` auto-detection runs ONLY when `HOMEFORGE_LAN_IP` is completely empty/unset. Any explicit value — `localhost` or a real IP — is preserved as-is. If you want LAN access from other devices, set the IP manually in `.env`.
