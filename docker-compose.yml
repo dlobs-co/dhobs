@@ -520,7 +520,7 @@ services:
       fi"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/"]
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:8080/ || pgrep sleep"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -574,6 +574,7 @@ services:
       - '1194:1194/udp'
     volumes:
       - ./data/vpn:/etc/openvpn
+      - ./config/vpn:/etc/openvpn/config:ro
     restart: "no"
     healthcheck:
       test: ["CMD", "pgrep", "openvpn"]

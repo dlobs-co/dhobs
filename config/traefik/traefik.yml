@@ -5,6 +5,8 @@ api:
   dashboard: true
   insecure: true  # Enable for local debugging only — disable in production
 
+ping: {}
+
 entryPoints:
   web:
     address: ":80"
