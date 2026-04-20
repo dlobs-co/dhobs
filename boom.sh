@@ -1,4 +1,7 @@
 #!/bin/bash
+
+# Ensure shell environment variables do not override .env for docker compose
+unset HOMEFORGE_LAN_IP
 # Project S "BOOM" Startup Script — Self-Healing Edition
 # One-click to BUILD and START the entire ecosystem.
 # This script repairs missing files/permissions before starting Docker.

@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Ensure shell environment variables do not override .env for docker compose
+unset HOMEFORGE_LAN_IP
+
 # Project S: HomeForge Installation Script
 # Supports Linux and macOS
 # --------------------------------------------------
@@ -23,7 +26,7 @@ fi
 
 # Auto-detect LAN IP if not set or set to placeholder 'localhost' in .env
 CURRENT_LAN_IP=$(grep "^HOMEFORGE_LAN_IP=" .env 2>/dev/null | cut -d'=' -f2- | tr -d ' ')
-if [ -f .env ] && { [ -z "$CURRENT_LAN_IP" ] || [ "$CURRENT_LAN_IP" = "localhost" ]; }; then
+if [ -f .env ] && [ -z "$CURRENT_LAN_IP" ]; then
     DETECTED_IP=""
     if [[ "$OSTYPE" == "darwin"* ]]; then
         DETECTED_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || true)
