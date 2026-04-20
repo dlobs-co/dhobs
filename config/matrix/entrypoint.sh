@@ -9,6 +9,12 @@ MIGRATION_LOCK="/data/.migration-locks/matrix-server"
 python3 /etc/synapse-config/gen_config.py
 cp /etc/synapse-config/localhost.log.config /data/localhost.log.config
 
+SIGNING_KEY_PATH="/data/${MATRIX_SERVER_NAME:-localhost}.signing.key"
+if [ ! -f "$SIGNING_KEY_PATH" ]; then
+    echo "[entrypoint] Generating signing key at $SIGNING_KEY_PATH"
+    generate_signing_key -o "$SIGNING_KEY_PATH"
+fi
+
 if command -v update_synapse_database >/dev/null 2>&1; then
     echo "[entrypoint] Applying Synapse database migrations — acquiring exclusive lock"
     mkdir -p "$(dirname "$MIGRATION_LOCK")"
